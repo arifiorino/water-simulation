@@ -1,26 +1,29 @@
+import scipy.sparse.linalg
 import numpy as np
 import matplotlib.pyplot as plt
 
 N = 8
 
 p = np.zeros((N, N))
-u = np.random.rand(N-1, N)-0.5
-v = np.random.rand(N, N-1)-0.5
+u = np.random.rand(N-1, N)*0.6-0.3
+v = np.random.rand(N, N-1)*0.6-0.3
 #u = np.zeros((N-1,N))
 #v = np.zeros((N, N-1))
 BOUNDARY, FULL, SURFACE, EMPTY = 0, 1, 2, 3
 types = np.zeros((N,N), dtype=int)
+types2 = np.zeros((N,N), dtype=int)
 particles = []
-dt = 0.3
+dt = 0.5
 dx = 1
 dy = 1
-beta0 = 1.7
-D_epsilon = 0.0001
 
 gx = 0
-gy = -.05
+gy = 0#-.05
 
 def interp(f, p1, p2):
+  #if f==1:
+    #return interp2((p2[0]-p1[0])/2.0, (p2[1]-p1[1])/2.0)[0]
+  #return interp2((p2[0]-p1[0])/2.0, (p2[1]-p1[1])/2.0)[1]
   a, b = None, None
   if p1[0]>=0 and p1[0]<len(f) and p1[1]>=0 and p1[1]<len(f[0]):
     a = f[p1[0]][p1[1]]
@@ -29,9 +32,9 @@ def interp(f, p1, p2):
   if a==None and b==None:
     return 0
   if a==None:
-    return b
+    return b/2.0
   if b==None:
-    return a
+    return a/2.0
   return (a+b)/2.0
 
 def interp2(x, y):
@@ -60,45 +63,22 @@ def interp2(x, y):
   vK = TL * v[i-1][j] + TR * v[i][j] + BL * v[i-1][j-1] + BR * v[i][j-1]
   return (uK, vK)
 
-def advectin():
-  global u, v
-  u2 = np.copy(u)
-  v2 = np.copy(v)
-  for i in range(1, N-1):
-    for j in range(1, N-1):
-      if types[i][j]!=FULL:
-        continue
-      if types[i-1][j]!=BOUNDARY:
-        x, y = i, j+0.5
-        for k in range(5):
-          tmp = interp2(x,y)
-          x-=(dt/5)*tmp[0]
-          y-=(dt/5)*tmp[1]
-        tmp = interp2(x,y)
-        u2[i-1][j]=tmp[0]
-
-      if types[i][j-1]!=BOUNDARY:
-        x, y = i+0.5, j
-        for k in range(5):
-          tmp = interp2(x,y)
-          x-=(dt/5)*tmp[0]
-          y-=(dt/5)*tmp[1]
-        tmp = interp2(x,y)
-        v2[i][j-1]=tmp[0]
-  u = u2
-  v = v2
-        
-
 def moveParticles():
   for i in range(len(particles)):
     x,y = particles[i]
     uK, vK = interp2(x, y)
-    particles[i] = (x+uK, y+vK)
+    particles[i] = (x+dt*uK, y+dt*vK)
 
 def classify():
-  types = np.zeros((N,N), dtype=int)
+  global types
+  types = np.zeros((N,N), dtype=int)+EMPTY
   for x,y in particles:
     types[int(x)][int(y)] = FULL
+  for i in range(N):#Border is boundary
+    types[0][i]=BOUNDARY
+    types[i][0]=BOUNDARY
+    types[N-1][i]=BOUNDARY
+    types[i][N-1]=BOUNDARY
   for i in range(1,N-1):
     for j in range(1,N-1):
       top = types[i][j+1] == EMPTY
@@ -107,11 +87,6 @@ def classify():
       left = types[i-1][j] == EMPTY
       if types[i][j]==FULL and (left or right or top or bottom):
         types[i][j]=SURFACE
-  for i in range(N):#Border is boundary
-    types[0][i]=BOUNDARY
-    types[i][0]=BOUNDARY
-    types[N-1][i]=BOUNDARY
-    types[i][N-1]=BOUNDARY
 
 def setBoundary():
   for i in range(N):
@@ -120,38 +95,21 @@ def setBoundary():
     v[i][0] = 0.0
     v[i][N-2] = 0.0
   for i in range(N-1):
-    u[i][0] = 0.0
-    u[i][N-1] = 0.0
-    v[0][i] = 0.0
-    v[N-1][i] = 0.0
+    u[i][0] = u[i][1]
+    u[i][N-1] = u[i][N-2]
+    v[0][i] = v[1][i]
+    v[N-1][i] = v[N-2][i]
+  for i in range(1,N-1):
+    p[0][i]=p[1][i]
+    p[i][0]=p[i][1]
+    p[N-1][i]=p[N-2][i]
+    p[i][N-1]=p[i][N-2]
   
 def setSurface():
   for i in range(N):
     for j in range(N):
       if types[i][j]!=SURFACE:
         continue
-      into = 0.0
-      count = 4
-      if types[i-1][j]==FULL:
-        into += u[i-1][j]
-        count-=1
-      if types[i][j-1]==FULL:
-        into += v[i][j-1]
-        count-=1
-      if types[i+1][j]==FULL:
-        into -= u[i][j]
-        count-=1
-      if types[i][j+1]==FULL:
-        into -= v[i][j]
-        count-=1
-      if types[i-1][j]==EMPTY:
-        u[i-1][j]=-into/count
-      if types[i][j-1]==EMPTY:
-        v[i][j-1]=-into/count
-      if types[i+1][j]==EMPTY:
-        u[i][j]=into/count
-      if types[i][j+1]==EMPTY:
-        v[i][j]=into/count
  
 def navier():
   global u, v
@@ -194,59 +152,66 @@ def navier():
   u = u2
   v = v2
       
-
 def pressureSolve():
-  worstD = D_epsilon+1
-  beta = 1.0 / (2.0 * dt *(1.0/(dx*dx) + 1.0/(dy*dy)))
-  count = 0
-  while worstD > D_epsilon:
-    worstD = 0
-    for i in range(N):
-      for j in range(N):
-        if types[i][j] != FULL:
-          continue
-        D = u[i-1][j] - u[i][j] + v[i][j-1] - v[i][j]
-        if abs(D)>worstD:
-          worstD = abs(D)
-        dp = beta * D
-        x=4
-        if types[i+1][j]==BOUNDARY:
-          x-=1
-        if types[i-1][j]==BOUNDARY:
-          x-=1
-        if types[i][j+1]==BOUNDARY:
-          x-=1
-        if types[i][j-1]==BOUNDARY:
-          x-=1
+  A = np.zeros((N*N, N*N))
+  b = np.zeros((N*N,))
+  for i in range(N):
+    for j in range(N):
+      if types[i][j]!=FULL:
+        continue
+      UCenter = interp(u, (i,j), (i-1,j))
+      URCenter = interp(u, (i,j), (i+1,j))
+      ULCenter = interp(u, (i-1,j), (i-2,j))
 
-        if types[i+1][j]!=BOUNDARY:
-          u[i][j]+=(dt/dx)*dp*(4/x)
-        if types[i-1][j]!=BOUNDARY:
-          u[i-1][j]-=(dt/dx)*dp*(4/x)
-        if types[i][j+1]!=BOUNDARY:
-          v[i][j]+=(dt/dy)*dp*(4/x)
-        if types[i][j-1]!=BOUNDARY:
-          v[i][j-1]-=(dt/dy)*dp*(4/x)
-        p[i][j]+=dp
-    count+=1
-    #print(count)
-  #print(count, worstD)
+      UTRCorner = interp(u, (i,j), (i,j+1))
+      UBRCorner = interp(u, (i,j), (i,j-1))
+      UTLCorner = interp(u, (i-1,j), (i-1,j+1))
+      UBLCorner = interp(u, (i-1,j), (i-1,j-1))
 
-def plotAll(i,center=False):
-  plt.figure(i, figsize=(7, 7))
-  plt.pcolormesh(p)
+      VCenter = interp(v, (i,j), (i,j-1))
+      VTCenter = interp(v, (i,j), (i,j+1))
+      VBCenter = interp(v, (i,j-1), (i,j-2))
+
+      VTRCorner = interp(v, (i,j), (i+1,j))
+      VTLCorner = interp(v, (i,j), (i-1,j))
+      VBRCorner = interp(v, (i,j-1), (i+1,j-1))
+      VBLCorner = interp(v, (i,j-1), (i-1,j-1))
+
+      Q = (1/(dx**2)) * (URCenter**2 + ULCenter**2 + 2*(UCenter**2)) +\
+          (1/(dy**2)) * (VTCenter**2 + VBCenter**2 + 2*(VCenter**2)) +\
+          2 / (dx*dy) *\
+          ((UTRCorner*VTRCorner) + (UBLCorner*VBLCorner) -\
+           (UBRCorner*VBRCorner) - (UTLCorner*VTLCorner))
+      D = -u[i-1][j] - v[i][j-1] + u[i][j] + v[i][j]
+      R = Q - (D/dt)
+        
+      A[i*N+j][(i+1)*N+j]=-1/(dx**2)
+      A[i*N+j][(i-1)*N+j]=-1/(dx**2)
+      A[i*N+j][i*N+j]=2/(dx**2)+2/(dy**2)
+      A[i*N+j][i*N+(j+1)]=-1/(dy**2)
+      A[i*N+j][i*N+(j-1)]=-1/(dy**2)
+      b[i*N+j]=R
+  x, info = scipy.sparse.linalg.cg(A, b)
+  for i in range(N):
+    for j in range(N):
+      p[i][j]=x[i*N+j]
+        
+
+def plotAll(i):
+  plt.figure(i, figsize=(10, 10))
+  p_types = np.zeros((N, N*2))
+  k = np.amax(p)/3
+  for i in range(N):
+    for j in range(2*N):
+      if j%2==0:
+        p_types[i][j]=p[j//2][i]
+      else:
+        p_types[i][j]=types2[(j-1)//2][i]*k
+  #plt.pcolormesh(np.arange(0, N+0.1, 0.5), np.arange(N+0.1), p_types)
+  plt.pcolormesh(p.T)
   plt.colorbar()
-  plt.quiver(np.arange(1, N), np.arange(0.5, N), u.T, np.zeros(u.T.shape), angles='xy', scale_units='xy', scale=1, color="blue")
+  plt.quiver(np.arange(1, N), np.arange(0.5, N), u.T, np.zeros(u.T.shape), angles='xy', scale_units='xy', scale=1, color="red")
   plt.quiver(np.arange(0.5, N), np.arange(1, N), np.zeros(v.T.shape), v.T, angles='xy', scale_units='xy', scale=1, color="red")
-
-  if center:
-    cx = np.zeros((N-2,N-2))
-    cy = np.zeros((N-2,N-2))
-    for i in range(1,N-1):
-      for j in range(1,N-1):
-        cx[i-1][j-1]=(u[i][j]+u[i-1][j])/2.0
-        cy[i-1][j-1]=(v[i][j-1]+v[i][j])/2.0
-    plt.quiver(np.arange(1.5, N-1), np.arange(1.5, N-1), cx.T, cy.T, angles='xy', scale_units='xy', scale=1, color="pink")
 
   plt.xticks(np.arange(0, N+1))
   plt.yticks(np.arange(0, N+1))
@@ -256,33 +221,34 @@ def plotParticles():
   for x, y in particles:
     dx, dy = interp2(x, y)
     plt.arrow(x, y, dx, dy, head_width=0.05, head_length=0.1,
-              color="green", length_includes_head=True)
+              color="black", length_includes_head=True)
 
 
+#for i in range(1, N-1):
+  #for j in range(4, 7):
+    #types[i][j]=EMPTY
 for i in range(1, N-1):
   for j in range(1, N-1):
     types[i][j]=FULL
 
-setBoundary()
-pressureSolve()
-plotAll(1)
+for i in range(N):
+  for j in range(N):
+    if types[i][j]==FULL:
+      particles.append((i+0.25, j+0.25))
+      particles.append((i+0.25, j+0.75))
+      particles.append((i+0.75, j+0.25))
+      particles.append((i+0.75, j+0.75))
+
 while 1:
+  setBoundary()
+
   plt.clf()
   plotAll(1)
-  plt.pause(0.1)
-  navier()
-  #setBoundary()
-  pressureSolve()
-'''
-setBoundary()
-pressureSolve()
-setBoundary()
-plotAll(1)
-for i in range(40):
-  particles.append(np.random.rand(2,)*N/2+N/4)
-for i in range(40):
   plotParticles()
+  plt.pause(0.1)
+
+  navier()
+  pressureSolve()
   moveParticles()
-'''
 
 plt.show()
