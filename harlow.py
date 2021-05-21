@@ -5,17 +5,18 @@ import matplotlib.pyplot as plt
 N = 8
 
 p = np.zeros((N, N))
-u = np.random.rand(N+1, N)*0.2-0.1
-v = np.random.rand(N, N+1)*0.2-0.1
-#u = np.zeros((N+1,N))
-#v = np.zeros((N, N+1))
+#u = np.random.rand(N+1, N)*0.6-0.3
+#v = np.random.rand(N, N+1)*0.6-0.3
+u = np.zeros((N+1,N))
+v = np.zeros((N, N+1))
 BOUNDARY, FULL, SURFACE, EMPTY = 0, 1, 2, 3
 types = np.zeros((N,N), dtype=int)
 particles = []
 dt = 0.5
 dx = 1
 dy = 1
-atmP = 0.1 #Atmospheric pressure
+atmP = 0 #Atmospheric pressure
+waterP = 0.2 #Atmospheric pressure
 
 gx = 0
 gy = 0#-.05
@@ -38,7 +39,7 @@ def interp2(x, y):
   BL = (vertical - left)*(horizontal - bottom)
   BR = (right - vertical)*(horizontal - bottom)
   i = int(vertical)
-  j = int(horizontal+0.1)
+  j = int(horizontal-0.1)
   uK = TL * u[i][j+1] + TR * u[i+1][j+1] + BL * u[i][j] + BR * u[i+1][j]
 
   horizontal = int(y)+0.5
@@ -47,7 +48,7 @@ def interp2(x, y):
   TR = (right - vertical)*(top - horizontal)
   BL = (vertical - left)*(horizontal - bottom)
   BR = (right - vertical)*(horizontal - bottom)
-  i = int(vertical+0.1)
+  i = int(vertical-0.1)
   j = int(horizontal)
   vK = TL * v[i][j+1] + TR * v[i+1][j+1] + BL * v[i][j] + BR * v[i+1][j]
   return (uK, vK)
@@ -75,7 +76,7 @@ def setBoundarySurface():
   for i in range(1,N-1):
     u[0][i] = -u[2][i]
     u[N][i] = -u[N-2][i]
-    v[i][0] = -u[i][2]
+    v[i][0] = -v[i][2]
     v[i][N] = -v[i][N-2]
   #Set border vel - tangential
   for i in range(2,N-1):
@@ -83,6 +84,16 @@ def setBoundarySurface():
     u[i][N-1] = u[i][N-2]
     v[0][i] = v[1][i]
     v[N-1][i] = v[N-2][i]
+  #Set border vel - wall
+  for i in range(1,N-1):
+    u[1][i] = 0
+    u[N-1][i] = 0
+    v[i][1] = 0
+    v[i][N-1] = 0
+  u[1][0]=0
+  v[0][1]=0
+  u[N-1][0]=0
+  v[0][N-1]=0
   #Set border pressure
   for i in range(1,N-1):
     p[0][i]=p[1][i]
@@ -93,13 +104,13 @@ def setBoundarySurface():
   for i in range(N):
     for j in range(N):
       if types[i][j]==EMPTY:
-        u[i+1][j+1]=0
-        u[i][j+1]=0
-        v[i+1][j+1]=0
-        v[i+1][j]=0
+        u[i+1][j]=0
+        u[i][j]=0
+        v[i][j+1]=0
+        v[i][j]=0
         p[i][j]=atmP
 
-def setFullPressure():
+def pressureStep():
   A = np.zeros((N*N, N*N))
   b = np.zeros((N*N,))
   for i in range(N):
@@ -144,14 +155,16 @@ def setFullPressure():
       if types[i][j]==FULL:
         p[i][j]=x[i*N+j]
 
-def setFullVel():
+def velStep():
   global u, v
   u2 = np.copy(u)
   v2 = np.copy(v)
   for i in range(N-1):
     for j in range(N):
       if (types[i][j]==FULL and types[i+1][j]!=BOUNDARY) or\
-         (types[i+1][j]==FULL and types[i][j]!=BOUNDARY):
+         (types[i+1][j]==FULL and types[i][j]!=BOUNDARY) or\
+         (types[i][j]==SURFACE and types[i+1][j]==SURFACE) or\
+         (types[i+1][j]==SURFACE and types[i][j]==SURFACE):
         UCenter = interp(u, (i,j), (i+1,j))
         URCenter = interp(u, (i+1,j), (i+2,j))
         UTRCorner = interp(u, (i+1,j), (i+1,j+1))
@@ -169,7 +182,9 @@ def setFullVel():
   for i in range(N):
     for j in range(N-1):
       if (types[i][j]==FULL and types[i][j+1]!=BOUNDARY) or\
-         (types[i][j+1]==FULL and types[i][j]!=BOUNDARY):
+         (types[i][j+1]==FULL and types[i][j]!=BOUNDARY) or\
+         (types[i][j]==SURFACE and types[i][j+1]==SURFACE) or\
+         (types[i][j+1]==SURFACE and types[i][j]==SURFACE):
 
         VCenter = interp(v, (i,j), (i,j+1))
         VTCenter = interp(v, (i,j+1), (i,j+2))
@@ -188,17 +203,18 @@ def setFullVel():
   v = v2
 
 def setSurface():
+  global u, v
   u2 = np.copy(u)
   v2 = np.copy(v)
   for i in range(N):
     for j in range(N):
-      if types[i][j]!=SURFACE:
+      if types[i][j]==SURFACE:
         #     EMPTY
         #     L B T R
-        m = {(1,0,0,0): (-v[i][j]-v[i][j+1]-u[i+1][j],None,None,None),
-             (0,1,0,0): (None,-u[i][j]-v[i][j+1]-u[i+1][j],None,None),
-             (0,0,1,0): (None,None,-u[i][j]-v[i][j]-u[i+1][j],None),
-             (0,0,0,1): (None,None,None,-u[i][j],-v[i][j]-v[i][j+1]),
+        m = {(1,0,0,0): (-v[i][j]-v[i][j+1]+u[i+1][j],None,None,None),
+             (0,1,0,0): (None,-u[i][j]+v[i][j+1]+u[i+1][j],None,None),
+             (0,0,1,0): (None,None,u[i][j]+v[i][j]-u[i+1][j],None),
+             (0,0,0,1): (None,None,None,u[i][j]+v[i][j]-v[i][j+1]),
              
              (1,1,0,0): (u[i+1][j],v[i][j+1],None,None,None),
              (1,0,1,0): (u[i+1][j],None,v[i][j],None,None),
@@ -235,7 +251,7 @@ def moveParticles():
     particles[i] = (x+dt*uK, y+dt*vK)
 
 def plotAll(i):
-  plt.figure(i, figsize=(10, 10))
+  plt.figure(i, figsize=(7, 7))
   p_types = np.zeros((N, N*2))
   k = np.amax(p)/3
   for i in range(N):
@@ -274,17 +290,60 @@ for i in range(N):
       particles.append((i+0.25, j+0.75))
       particles.append((i+0.75, j+0.25))
       particles.append((i+0.75, j+0.75))
+      p[i][j]=waterP
+k=0.2
+u[2][1]=k
+u[3][1]=k
+u[4][1]=k
+u[5][1]=k
+u[6][1]=k
+v[6][2]=k
+v[6][3]=k
+u[6][3]=-k
+u[5][3]=-k
+u[4][3]=-k
+u[3][3]=-k
+u[2][3]=-k
+v[1][3]=-k
+v[1][2]=-k
+
+
+setBoundarySurface()
+setSurface()
+
+#plotAll(1)
+#plotParticles()
 
 while 1:
+  pressureStep()
+  velStep()
+  setSurface()
+  moveParticles()
+  setBoundarySurface()
+  setSurface()
 
   plt.clf()
   plotAll(1)
   plotParticles()
   plt.pause(0.1)
+  input('update?')
+
+
+import sys
+sys.exit()
+
+while 1:
 
   setBoundarySurface()
-  setFullPressure()
-  setFullVel()
+  setSurface()
+
+  plt.clf()
+  plotAll(1)
+  plotParticles()
+  plt.pause(10)
+
+  pressureStep()
+  velStep()
   setSurface()
   moveParticles()
 
