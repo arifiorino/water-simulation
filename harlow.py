@@ -11,11 +11,11 @@ v = np.random.rand(N, N-1)*0.6-0.3
 #v = np.zeros((N, N-1))
 BOUNDARY, FULL, SURFACE, EMPTY = 0, 1, 2, 3
 types = np.zeros((N,N), dtype=int)
-types2 = np.zeros((N,N), dtype=int)
 particles = []
 dt = 0.5
 dx = 1
 dy = 1
+atmP = 0.1 #Atmospheric pressure
 
 gx = 0
 gy = 0#-.05
@@ -63,18 +63,13 @@ def interp2(x, y):
   vK = TL * v[i-1][j] + TR * v[i][j] + BL * v[i-1][j-1] + BR * v[i][j-1]
   return (uK, vK)
 
-def moveParticles():
-  for i in range(len(particles)):
-    x,y = particles[i]
-    uK, vK = interp2(x, y)
-    particles[i] = (x+dt*uK, y+dt*vK)
-
-def classify():
+def setBoundarySurface():
   global types
+  #Set types
   types = np.zeros((N,N), dtype=int)+EMPTY
   for x,y in particles:
     types[int(x)][int(y)] = FULL
-  for i in range(N):#Border is boundary
+  for i in range(N):
     types[0][i]=BOUNDARY
     types[i][0]=BOUNDARY
     types[N-1][i]=BOUNDARY
@@ -87,8 +82,7 @@ def classify():
       left = types[i-1][j] == EMPTY
       if types[i][j]==FULL and (left or right or top or bottom):
         types[i][j]=SURFACE
-
-def setBoundary():
+  #Set border vel
   for i in range(N):
     u[0][i] = 0.0
     u[N-2][i] = 0.0
@@ -99,60 +93,23 @@ def setBoundary():
     u[i][N-1] = u[i][N-2]
     v[0][i] = v[1][i]
     v[N-1][i] = v[N-2][i]
+  #Set border pressure
   for i in range(1,N-1):
     p[0][i]=p[1][i]
     p[i][0]=p[i][1]
     p[N-1][i]=p[N-2][i]
     p[i][N-1]=p[i][N-2]
-  
-def setSurface():
+  #Set empty pressure, vel
   for i in range(N):
     for j in range(N):
-      if types[i][j]!=SURFACE:
-        continue
- 
-def navier():
-  global u, v
-  u2 = np.copy(u)
-  v2 = np.copy(v)
-  for i in range(N):
-    for j in range(N):
-      if types[i][j]!=FULL:
-        continue
-      #print(i,j)
-      if types[i+1][j]!=BOUNDARY:
-        UCenter = interp(u, (i,j), (i-1,j))
-        URCenter = interp(u, (i,j), (i+1,j))
-        UTRCorner = interp(u, (i,j), (i,j+1))
-        VTRCorner = interp(v, (i,j), (i+1,j))
-        UBRCorner = interp(u, (i,j), (i,j-1))
-        VBRCorner = interp(v, (i,j-1), (i+1,j-1))
-        PCenter = p[i][j]
-        PRCenter = p[i+1][j]
-        du = (1/dx)*(UCenter**2 - URCenter**2) +\
-             (1/dy)*(UBRCorner*VBRCorner - UTRCorner*VTRCorner) +\
-             gx +\
-             (1/dx)*(PCenter - PRCenter)
-        u2[i][j] += dt*du
+      if types[i][j]==EMPTY:
+        u[i][j]=0
+        u[i-1][j]=0
+        v[i][j]=0
+        v[i][j-1]=0
+        p[i][j]=atmP
 
-      if types[i][j+1]!=BOUNDARY:
-        VCenter = interp(v, (i,j), (i,j-1))
-        VTCenter = interp(v, (i,j), (i,j+1))
-        VTRCorner = interp(v, (i,j), (i+1,j))
-        UTRCorner = interp(u, (i,j), (i,j+1))
-        VTLCorner = interp(v, (i,j), (i-1,j))
-        UTLCorner = interp(u, (i-1,j), (i-1,j+1))
-        PCenter = p[i][j]
-        PTCenter = p[i][j+1]
-        dv = (1/dy)*(VCenter**2 - VTCenter**2) +\
-             (1/dx)*(VTLCorner*UTLCorner - VTRCorner*UTRCorner) +\
-             gy +\
-             (1/dy)*(PCenter - PTCenter)
-        v2[i][j] += dt*dv
-  u = u2
-  v = v2
-      
-def pressureSolve():
+def setFullPressure():
   A = np.zeros((N*N, N*N))
   b = np.zeros((N*N,))
   for i in range(N):
@@ -182,7 +139,7 @@ def pressureSolve():
           2 / (dx*dy) *\
           ((UTRCorner*VTRCorner) + (UBLCorner*VBLCorner) -\
            (UBRCorner*VBRCorner) - (UTLCorner*VTLCorner))
-      D = -u[i-1][j] - v[i][j-1] + u[i][j] + v[i][j]
+      D = (-u[i-1][j] + u[i][j])/dx +(-v[i][j-1] + v[i][j])/dy
       R = Q - (D/dt)
         
       A[i*N+j][(i+1)*N+j]=-1/(dx**2)
@@ -195,7 +152,61 @@ def pressureSolve():
   for i in range(N):
     for j in range(N):
       p[i][j]=x[i*N+j]
-        
+
+def setFullVel():
+  global u, v
+  u2 = np.copy(u)
+  v2 = np.copy(v)
+  for i in range(N-1):
+    for j in range(N):
+      if (types[i][j]==FULL and types[i+1][j]!=BOUNDARY) or
+         (types[i+1][j]==FULL and types[i][j]!=BOUNDARY):
+        UCenter = interp(u, (i,j), (i-1,j))
+        URCenter = interp(u, (i,j), (i+1,j))
+        UTRCorner = interp(u, (i,j), (i,j+1))
+        VTRCorner = interp(v, (i,j), (i+1,j))
+        UBRCorner = interp(u, (i,j), (i,j-1))
+        VBRCorner = interp(v, (i,j-1), (i+1,j-1))
+        PCenter = p[i][j]
+        PRCenter = p[i+1][j]
+        du = (1/dx)*(UCenter**2 - URCenter**2) +\
+             (1/dy)*(UBRCorner*VBRCorner - UTRCorner*VTRCorner) +\
+             gx +\
+             (1/dx)*(PCenter - PRCenter)
+        u2[i][j] += dt*du
+
+  for i in range(N):
+    for j in range(N-1):
+      if (types[i][j]==FULL and types[i][j+1]!=BOUNDARY) or
+         (types[i][j+1]==FULL and types[i][j]!=BOUNDARY):
+        VCenter = interp(v, (i,j), (i,j-1))
+        VTCenter = interp(v, (i,j), (i,j+1))
+        VTRCorner = interp(v, (i,j), (i+1,j))
+        UTRCorner = interp(u, (i,j), (i,j+1))
+        VTLCorner = interp(v, (i,j), (i-1,j))
+        UTLCorner = interp(u, (i-1,j), (i-1,j+1))
+        PCenter = p[i][j]
+        PTCenter = p[i][j+1]
+        dv = (1/dy)*(VCenter**2 - VTCenter**2) +\
+             (1/dx)*(VTLCorner*UTLCorner - VTRCorner*UTRCorner) +\
+             gy +\
+             (1/dy)*(PCenter - PTCenter)
+        v2[i][j] += dt*dv
+  u = u2
+  v = v2
+
+def setSurface():
+  for i in range(N):
+    for j in range(N):
+      if types[i][j]!=SURFACE:
+        continue
+      
+
+def moveParticles():
+  for i in range(len(particles)):
+    x,y = particles[i]
+    uK, vK = interp2(x, y)
+    particles[i] = (x+dt*uK, y+dt*vK)
 
 def plotAll(i):
   plt.figure(i, figsize=(10, 10))
@@ -206,7 +217,7 @@ def plotAll(i):
       if j%2==0:
         p_types[i][j]=p[j//2][i]
       else:
-        p_types[i][j]=types2[(j-1)//2][i]*k
+        p_types[i][j]=types[(j-1)//2][i]*k
   #plt.pcolormesh(np.arange(0, N+0.1, 0.5), np.arange(N+0.1), p_types)
   plt.pcolormesh(p.T)
   plt.colorbar()
@@ -223,12 +234,11 @@ def plotParticles():
     plt.arrow(x, y, dx, dy, head_width=0.05, head_length=0.1,
               color="black", length_includes_head=True)
 
-
-#for i in range(1, N-1):
-  #for j in range(4, 7):
-    #types[i][j]=EMPTY
 for i in range(1, N-1):
-  for j in range(1, N-1):
+  for j in range(4, 7):
+    types[i][j]=EMPTY
+for i in range(1, N-1):
+  for j in range(1, 4):
     types[i][j]=FULL
 
 for i in range(N):
@@ -240,15 +250,17 @@ for i in range(N):
       particles.append((i+0.75, j+0.75))
 
 while 1:
-  setBoundary()
+  fixed()
 
   plt.clf()
   plotAll(1)
   plotParticles()
   plt.pause(0.1)
 
-  navier()
-  pressureSolve()
+  setBoundarySurface()
+  setFullPressure()
+  setFullVel()
+  setSurface()
   moveParticles()
 
 plt.show()
