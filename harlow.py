@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 N = 8
 
 p = np.zeros((N, N))
-u = np.random.rand(N-1, N)*0.6-0.3
-v = np.random.rand(N, N-1)*0.6-0.3
-#u = np.zeros((N-1,N))
-#v = np.zeros((N, N-1))
+u = np.random.rand(N+1, N)*0.6-0.3
+v = np.random.rand(N, N+1)*0.6-0.3
+#u = np.zeros((N+1,N))
+#v = np.zeros((N, N+1))
 BOUNDARY, FULL, SURFACE, EMPTY = 0, 1, 2, 3
 types = np.zeros((N,N), dtype=int)
 particles = []
@@ -50,7 +50,7 @@ def interp2(x, y):
   BR = (right - vertical)*(horizontal - bottom)
   i = int(vertical)
   j = int(horizontal+0.1)
-  uK = TL * u[i-1][j] + TR * u[i][j] + BL * u[i-1][j-1] + BR * u[i][j-1]
+  uK = TL * u[i][j+1] + TR * u[i+1][j+1] + BL * u[i][j] + BR * u[i+1][j]
 
   horizontal = int(y)+0.5
   vertical = int(x-0.5)+1.0
@@ -60,7 +60,7 @@ def interp2(x, y):
   BR = (right - vertical)*(horizontal - bottom)
   i = int(vertical+0.1)
   j = int(horizontal)
-  vK = TL * v[i-1][j] + TR * v[i][j] + BL * v[i-1][j-1] + BR * v[i][j-1]
+  vK = TL * v[i][j+1] + TR * v[i+1][j+1] + BL * v[i][j] + BR * v[i+1][j]
   return (uK, vK)
 
 def setBoundarySurface():
@@ -82,13 +82,14 @@ def setBoundarySurface():
       left = types[i-1][j] == EMPTY
       if types[i][j]==FULL and (left or right or top or bottom):
         types[i][j]=SURFACE
-  #Set border vel
-  for i in range(N):
-    u[0][i] = 0.0
-    u[N-2][i] = 0.0
-    v[i][0] = 0.0
-    v[i][N-2] = 0.0
-  for i in range(N-1):
+  #Set border vel - normal
+  for i in range(1,N-1):
+    u[0][i] = -u[2][i]
+    u[N][i] = -u[N-2][i]
+    v[i][0] = -u[i][2]
+    v[i][N] = -v[i][N-2]
+  #Set border vel - tangential
+  for i in range(2,N-1):
     u[i][0] = u[i][1]
     u[i][N-1] = u[i][N-2]
     v[0][i] = v[1][i]
@@ -103,10 +104,10 @@ def setBoundarySurface():
   for i in range(N):
     for j in range(N):
       if types[i][j]==EMPTY:
-        u[i][j]=0
-        u[i-1][j]=0
-        v[i][j]=0
-        v[i][j-1]=0
+        u[i+1][j+1]=0
+        u[i][j+1]=0
+        v[i+1][j+1]=0
+        v[i+1][j]=0
         p[i][j]=atmP
 
 def setFullPressure():
@@ -116,30 +117,30 @@ def setFullPressure():
     for j in range(N):
       if types[i][j]!=FULL:
         continue
-      UCenter = interp(u, (i,j), (i-1,j))
-      URCenter = interp(u, (i,j), (i+1,j))
-      ULCenter = interp(u, (i-1,j), (i-2,j))
+      UCenter = interp(u, (i,j), (i+1,j))
+      ULCenter = interp(u, (i,j), (i-1,j))
+      URCenter = interp(u, (i+1,j), (i+2,j))
 
-      UTRCorner = interp(u, (i,j), (i,j+1))
-      UBRCorner = interp(u, (i,j), (i,j-1))
-      UTLCorner = interp(u, (i-1,j), (i-1,j+1))
-      UBLCorner = interp(u, (i-1,j), (i-1,j-1))
+      UTRCorner = interp(u, (i+1,j), (i+1,j+1))
+      UBRCorner = interp(u, (i+1,j), (i+1,j-1))
+      UTLCorner = interp(u, (i,j), (i,j+1))
+      UBLCorner = interp(u, (i,j), (i,j-1))
 
-      VCenter = interp(v, (i,j), (i,j-1))
-      VTCenter = interp(v, (i,j), (i,j+1))
-      VBCenter = interp(v, (i,j-1), (i,j-2))
+      VCenter = interp(v, (i,j), (i,j+1))
+      VBCenter = interp(v, (i,j), (i,j-1))
+      VTCenter = interp(v, (i,j+1), (i,j+2))
 
-      VTRCorner = interp(v, (i,j), (i+1,j))
-      VTLCorner = interp(v, (i,j), (i-1,j))
-      VBRCorner = interp(v, (i,j-1), (i+1,j-1))
-      VBLCorner = interp(v, (i,j-1), (i-1,j-1))
+      VTRCorner = interp(v, (i,j+1), (i+1,j+1))
+      VTLCorner = interp(v, (i,j+1), (i-1,j+1))
+      VBRCorner = interp(v, (i,j), (i+1,j))
+      VBLCorner = interp(v, (i,j), (i-1,j))
 
       Q = (1/(dx**2)) * (URCenter**2 + ULCenter**2 + 2*(UCenter**2)) +\
           (1/(dy**2)) * (VTCenter**2 + VBCenter**2 + 2*(VCenter**2)) +\
           2 / (dx*dy) *\
           ((UTRCorner*VTRCorner) + (UBLCorner*VBLCorner) -\
            (UBRCorner*VBRCorner) - (UTLCorner*VTLCorner))
-      D = (-u[i-1][j] + u[i][j])/dx +(-v[i][j-1] + v[i][j])/dy
+      D = (-u[i][j] + u[i+1][j])/dx +(-v[i][j] + v[i][j+1])/dy
       R = Q - (D/dt)
         
       A[i*N+j][(i+1)*N+j]=-1/(dx**2)
@@ -151,7 +152,8 @@ def setFullPressure():
   x, info = scipy.sparse.linalg.cg(A, b)
   for i in range(N):
     for j in range(N):
-      p[i][j]=x[i*N+j]
+      if types[i][j]==FULL:
+        p[i][j]=x[i*N+j]
 
 def setFullVel():
   global u, v
@@ -161,12 +163,12 @@ def setFullVel():
     for j in range(N):
       if (types[i][j]==FULL and types[i+1][j]!=BOUNDARY) or
          (types[i+1][j]==FULL and types[i][j]!=BOUNDARY):
-        UCenter = interp(u, (i,j), (i-1,j))
-        URCenter = interp(u, (i,j), (i+1,j))
-        UTRCorner = interp(u, (i,j), (i,j+1))
-        VTRCorner = interp(v, (i,j), (i+1,j))
-        UBRCorner = interp(u, (i,j), (i,j-1))
-        VBRCorner = interp(v, (i,j-1), (i+1,j-1))
+        UCenter = interp(u, (i,j), (i+1,j))
+        URCenter = interp(u, (i+1,j), (i+2,j))
+        UTRCorner = interp(u, (i+1,j), (i+1,j+1))
+        VTRCorner = interp(v, (i,j+1), (i+1,j+1))
+        UBRCorner = interp(u, (i,j), (i,j+1))
+        VBRCorner = interp(v, (i,j), (i+1,j))
         PCenter = p[i][j]
         PRCenter = p[i+1][j]
         du = (1/dx)*(UCenter**2 - URCenter**2) +\
@@ -179,12 +181,13 @@ def setFullVel():
     for j in range(N-1):
       if (types[i][j]==FULL and types[i][j+1]!=BOUNDARY) or
          (types[i][j+1]==FULL and types[i][j]!=BOUNDARY):
-        VCenter = interp(v, (i,j), (i,j-1))
-        VTCenter = interp(v, (i,j), (i,j+1))
-        VTRCorner = interp(v, (i,j), (i+1,j))
-        UTRCorner = interp(u, (i,j), (i,j+1))
-        VTLCorner = interp(v, (i,j), (i-1,j))
-        UTLCorner = interp(u, (i-1,j), (i-1,j+1))
+
+        VCenter = interp(v, (i,j), (i,j+1))
+        VTCenter = interp(v, (i,j+1), (i,j+2))
+        VTRCorner = interp(v, (i,j+1), (i+1,j+1))
+        UTRCorner = interp(u, (i+1,j), (i+1,j+1))
+        VTLCorner = interp(v, (i,j+1), (i-1,j+1))
+        UTLCorner = interp(u, (i,j), (i,j+1))
         PCenter = p[i][j]
         PTCenter = p[i][j+1]
         dv = (1/dy)*(VCenter**2 - VTCenter**2) +\
@@ -221,8 +224,8 @@ def plotAll(i):
   #plt.pcolormesh(np.arange(0, N+0.1, 0.5), np.arange(N+0.1), p_types)
   plt.pcolormesh(p.T)
   plt.colorbar()
-  plt.quiver(np.arange(1, N), np.arange(0.5, N), u.T, np.zeros(u.T.shape), angles='xy', scale_units='xy', scale=1, color="red")
-  plt.quiver(np.arange(0.5, N), np.arange(1, N), np.zeros(v.T.shape), v.T, angles='xy', scale_units='xy', scale=1, color="red")
+  plt.quiver(np.arange(0, N+0.5), np.arange(0.5, N), u.T, np.zeros(u.T.shape), angles='xy', scale_units='xy', scale=1, color="red")
+  plt.quiver(np.arange(0.5, N), np.arange(0, N+0.5), np.zeros(v.T.shape), v.T, angles='xy', scale_units='xy', scale=1, color="red")
 
   plt.xticks(np.arange(0, N+1))
   plt.yticks(np.arange(0, N+1))
