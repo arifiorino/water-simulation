@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 N = 8
 
 p = np.zeros((N, N))
-u = np.random.rand(N+1, N)*0.6-0.3
-v = np.random.rand(N, N+1)*0.6-0.3
+u = np.random.rand(N+1, N)*0.2-0.1
+v = np.random.rand(N, N+1)*0.2-0.1
 #u = np.zeros((N+1,N))
 #v = np.zeros((N, N+1))
 BOUNDARY, FULL, SURFACE, EMPTY = 0, 1, 2, 3
@@ -24,18 +24,7 @@ def interp(f, p1, p2):
   #if f==1:
     #return interp2((p2[0]-p1[0])/2.0, (p2[1]-p1[1])/2.0)[0]
   #return interp2((p2[0]-p1[0])/2.0, (p2[1]-p1[1])/2.0)[1]
-  a, b = None, None
-  if p1[0]>=0 and p1[0]<len(f) and p1[1]>=0 and p1[1]<len(f[0]):
-    a = f[p1[0]][p1[1]]
-  if p2[0]>=0 and p2[0]<len(f) and p2[1]>=0 and p2[1]<len(f[0]):
-    b = f[p2[0]][p2[1]]
-  if a==None and b==None:
-    return 0
-  if a==None:
-    return b/2.0
-  if b==None:
-    return a/2.0
-  return (a+b)/2.0
+  return (f[p1[0]][p1[1]]+f[p2[0]][p2[1]])/2.0
 
 def interp2(x, y):
   right=x+0.5
@@ -161,7 +150,7 @@ def setFullVel():
   v2 = np.copy(v)
   for i in range(N-1):
     for j in range(N):
-      if (types[i][j]==FULL and types[i+1][j]!=BOUNDARY) or
+      if (types[i][j]==FULL and types[i+1][j]!=BOUNDARY) or\
          (types[i+1][j]==FULL and types[i][j]!=BOUNDARY):
         UCenter = interp(u, (i,j), (i+1,j))
         URCenter = interp(u, (i+1,j), (i+2,j))
@@ -179,7 +168,7 @@ def setFullVel():
 
   for i in range(N):
     for j in range(N-1):
-      if (types[i][j]==FULL and types[i][j+1]!=BOUNDARY) or
+      if (types[i][j]==FULL and types[i][j+1]!=BOUNDARY) or\
          (types[i][j+1]==FULL and types[i][j]!=BOUNDARY):
 
         VCenter = interp(v, (i,j), (i,j+1))
@@ -199,11 +188,45 @@ def setFullVel():
   v = v2
 
 def setSurface():
+  u2 = np.copy(u)
+  v2 = np.copy(v)
   for i in range(N):
     for j in range(N):
       if types[i][j]!=SURFACE:
-        continue
-      
+        #     EMPTY
+        #     L B T R
+        m = {(1,0,0,0): (-v[i][j]-v[i][j+1]-u[i+1][j],None,None,None),
+             (0,1,0,0): (None,-u[i][j]-v[i][j+1]-u[i+1][j],None,None),
+             (0,0,1,0): (None,None,-u[i][j]-v[i][j]-u[i+1][j],None),
+             (0,0,0,1): (None,None,None,-u[i][j],-v[i][j]-v[i][j+1]),
+             
+             (1,1,0,0): (u[i+1][j],v[i][j+1],None,None,None),
+             (1,0,1,0): (u[i+1][j],None,v[i][j],None,None),
+             (1,0,0,1): (None,None,None,None),
+             (0,1,1,0): (None,None,None,None),
+             (0,1,0,1): (None,v[i][j+1],None,u[i][j]),
+             (0,0,1,1): (None,None,v[i][j],u[i][j]),
+             
+             (1,1,1,0): (u[i+1][j],None,None,None),
+             (1,1,0,1): (None,v[i][j+1],None,None),
+             (1,0,1,1): (None,None,v[i][j],None),
+             (0,1,1,1): (None,None,None,u[i][j]),
+             
+             (1,1,1,1): (gx,gy,gy,gx)}
+        diff = m[(int(types[i-1][j]==EMPTY), int(types[i][j-1]==EMPTY),
+                  int(types[i][j+1]==EMPTY), int(types[i+1][j]==EMPTY))]
+        if diff[0]:
+          u2[i][j]=diff[0]
+        if diff[1]:
+          v2[i][j]=diff[1]
+        if diff[2]:
+          v2[i][j+1]=diff[2]
+        if diff[3]:
+          u2[i+1][j]=diff[3]
+
+        p[i][j]=atmP
+  u = u2
+  v = v2
 
 def moveParticles():
   for i in range(len(particles)):
@@ -253,7 +276,6 @@ for i in range(N):
       particles.append((i+0.75, j+0.75))
 
 while 1:
-  fixed()
 
   plt.clf()
   plotAll(1)
