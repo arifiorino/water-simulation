@@ -16,7 +16,7 @@ dt = 0.5
 dx = 1
 dy = 1
 atmP = 0 #Atmospheric pressure
-waterP = 0.2 #Atmospheric pressure
+waterP = 0.1
 
 gx = 0
 gy = 0#-.05
@@ -143,17 +143,23 @@ def pressureStep():
       D = (-u[i][j] + u[i+1][j])/dx +(-v[i][j] + v[i][j+1])/dy
       R = Q - (D/dt)
         
-      A[i*N+j][(i+1)*N+j]=-1/(dx**2)
-      A[i*N+j][(i-1)*N+j]=-1/(dx**2)
-      A[i*N+j][i*N+j]=2/(dx**2)+2/(dy**2)
-      A[i*N+j][i*N+(j+1)]=-1/(dy**2)
-      A[i*N+j][i*N+(j-1)]=-1/(dy**2)
       b[i*N+j]=R
-  x, info = scipy.sparse.linalg.cg(A, b)
+      if types[i+1][j]==FULL:
+        A[i*N+j][(i+1)*N+j]=-1/(dx**2)
+      if types[i-1][j]==FULL:
+        A[i*N+j][(i-1)*N+j]=-1/(dx**2)
+      A[i*N+j][i*N+j]=2/(dx**2)+2/(dy**2)
+      if types[i][j+1]==FULL:
+        A[i*N+j][i*N+(j+1)]=-1/(dy**2)
+      if types[i][j-1]==FULL:
+        A[i*N+j][i*N+(j-1)]=-1/(dy**2)
+  print(np.linalg.eigvals(A))
+  x, _, _, _ = np.linalg.lstsq(A, b)
+  #x, info = scipy.sparse.linalg.cg(A, b)
   for i in range(N):
     for j in range(N):
-      if types[i][j]==FULL:
-        p[i][j]=x[i*N+j]
+      #if types[i][j]==FULL:
+      p[i][j]=x[i*N+j]
 
 def velStep():
   global u, v
@@ -291,28 +297,24 @@ for i in range(N):
       particles.append((i+0.75, j+0.25))
       particles.append((i+0.75, j+0.75))
       p[i][j]=waterP
-k=0.2
-u[2][1]=k
-u[3][1]=k
-u[4][1]=k
-u[5][1]=k
-u[6][1]=k
-v[6][2]=k
-v[6][3]=k
-u[6][3]=-k
-u[5][3]=-k
-u[4][3]=-k
-u[3][3]=-k
-u[2][3]=-k
-v[1][3]=-k
-v[1][2]=-k
-
+k=lambda: 0.2 #np.random.rand()*0.2-0.1
+u[2][1]=k()
+u[3][1]=k()
+u[4][1]=k()
+u[5][1]=k()
+u[6][1]=k()
+v[6][2]=k()
+v[6][3]=k()
+u[6][3]=-k()
+u[5][3]=-k()
+u[4][3]=-k()
+u[3][3]=-k()
+u[2][3]=-k()
+v[1][3]=-k()
+v[1][2]=-k()
 
 setBoundarySurface()
 setSurface()
-
-#plotAll(1)
-#plotParticles()
 
 while 1:
   pressureStep()
@@ -327,24 +329,5 @@ while 1:
   plotParticles()
   plt.pause(0.1)
   input('update?')
-
-
-import sys
-sys.exit()
-
-while 1:
-
-  setBoundarySurface()
-  setSurface()
-
-  plt.clf()
-  plotAll(1)
-  plotParticles()
-  plt.pause(10)
-
-  pressureStep()
-  velStep()
-  setSurface()
-  moveParticles()
 
 plt.show()
