@@ -56,6 +56,7 @@ def interp2(x, y):
 def setBoundarySurface():
   global types
   #Set types
+  '''
   types = np.zeros((N,N), dtype=int)+EMPTY
   for x,y in particles:
     types[int(x)][int(y)] = FULL
@@ -72,6 +73,7 @@ def setBoundarySurface():
       left = types[i-1][j] == EMPTY
       if types[i][j]==FULL and (left or right or top or bottom):
         types[i][j]=SURFACE
+  '''
   #Set border vel - normal
   for i in range(1,N-1):
     u[0][i] = -u[2][i]
@@ -153,9 +155,9 @@ def pressureStep():
         A[i*N+j][i*N+(j+1)]=-1/(dy**2)
       if types[i][j-1]==FULL:
         A[i*N+j][i*N+(j-1)]=-1/(dy**2)
-  print(np.linalg.eigvals(A))
-  x, _, _, _ = np.linalg.lstsq(A, b)
-  #x, info = scipy.sparse.linalg.cg(A, b)
+  #print(np.linalg.eigvals(A))
+  #x, _, _, _ = np.linalg.lstsq(A, b)
+  x, info = scipy.sparse.linalg.cg(A, b)
   for i in range(N):
     for j in range(N):
       #if types[i][j]==FULL:
@@ -183,7 +185,7 @@ def velStep():
              (1/dy)*(UBRCorner*VBRCorner - UTRCorner*VTRCorner) +\
              gx +\
              (1/dx)*(PCenter - PRCenter)
-        u2[i][j] += dt*du
+        u2[i+1][j] += dt*du
 
   for i in range(N):
     for j in range(N-1):
@@ -204,7 +206,7 @@ def velStep():
              (1/dx)*(VTLCorner*UTLCorner - VTRCorner*UTRCorner) +\
              gy +\
              (1/dy)*(PCenter - PTCenter)
-        v2[i][j] += dt*dv
+        v2[i][j+1] += dt*dv
   u = u2
   v = v2
 
@@ -286,7 +288,7 @@ for i in range(1, N-1):
   for j in range(4, 7):
     types[i][j]=EMPTY
 for i in range(1, N-1):
-  for j in range(1, 4):
+  for j in range(1, 7):
     types[i][j]=FULL
 
 for i in range(N):
@@ -297,7 +299,7 @@ for i in range(N):
       particles.append((i+0.75, j+0.25))
       particles.append((i+0.75, j+0.75))
       p[i][j]=waterP
-k=lambda: 0.2 #np.random.rand()*0.2-0.1
+k=lambda: np.random.rand()*0.6-0.3
 u[2][1]=k()
 u[3][1]=k()
 u[4][1]=k()
@@ -328,6 +330,6 @@ while 1:
   plotAll(1)
   plotParticles()
   plt.pause(0.1)
-  input('update?')
+  #input('update?')
 
 plt.show()
