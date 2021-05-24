@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 N = 8
 
 p = np.zeros((N, N))
-#u = np.random.rand(N+1, N)*0.6-0.3
-#v = np.random.rand(N, N+1)*0.6-0.3
+#u = np.random.rand(N+1, N)*0.2-0.1
+#v = np.random.rand(N, N+1)*0.2-0.1
 u = np.zeros((N+1,N))
 v = np.zeros((N, N+1))
 BOUNDARY, FULL, SURFACE, EMPTY = 0, 1, 2, 3
@@ -16,15 +16,12 @@ dt = 0.5
 dx = 1
 dy = 1
 atmP = 0 #Atmospheric pressure
-waterP = 0.1
+waterP = 0.2
 
 gx = 0
-gy = 0#-.05
+gy = -.02
 
 def interp(f, p1, p2):
-  #if f==1:
-    #return interp2((p2[0]-p1[0])/2.0, (p2[1]-p1[1])/2.0)[0]
-  #return interp2((p2[0]-p1[0])/2.0, (p2[1]-p1[1])/2.0)[1]
   return (f[p1[0]][p1[1]]+f[p2[0]][p2[1]])/2.0
 
 def interp2(x, y):
@@ -56,7 +53,6 @@ def interp2(x, y):
 def setBoundarySurface():
   global types
   #Set types
-  '''
   types = np.zeros((N,N), dtype=int)+EMPTY
   for x,y in particles:
     types[int(x)][int(y)] = FULL
@@ -73,7 +69,6 @@ def setBoundarySurface():
       left = types[i-1][j] == EMPTY
       if types[i][j]==FULL and (left or right or top or bottom):
         types[i][j]=SURFACE
-  '''
   #Set border vel - normal
   for i in range(1,N-1):
     u[0][i] = -u[2][i]
@@ -269,7 +264,7 @@ def plotAll(i):
       else:
         p_types[i][j]=types[(j-1)//2][i]*k
   #plt.pcolormesh(np.arange(0, N+0.1, 0.5), np.arange(N+0.1), p_types)
-  plt.pcolormesh(p.T)
+  plt.pcolormesh(types.T)
   plt.colorbar()
   plt.quiver(np.arange(0, N+0.5), np.arange(0.5, N), u.T, np.zeros(u.T.shape), angles='xy', scale_units='xy', scale=1, color="red")
   plt.quiver(np.arange(0.5, N), np.arange(0, N+0.5), np.zeros(v.T.shape), v.T, angles='xy', scale_units='xy', scale=1, color="red")
@@ -285,10 +280,7 @@ def plotParticles():
               color="black", length_includes_head=True)
 
 for i in range(1, N-1):
-  for j in range(4, 7):
-    types[i][j]=EMPTY
-for i in range(1, N-1):
-  for j in range(1, 7):
+  for j in range(1, N//2):
     types[i][j]=FULL
 
 for i in range(N):
@@ -299,32 +291,20 @@ for i in range(N):
       particles.append((i+0.75, j+0.25))
       particles.append((i+0.75, j+0.75))
       p[i][j]=waterP
-k=lambda: np.random.rand()*0.6-0.3
-u[2][1]=k()
-u[3][1]=k()
-u[4][1]=k()
-u[5][1]=k()
-u[6][1]=k()
-v[6][2]=k()
-v[6][3]=k()
-u[6][3]=-k()
-u[5][3]=-k()
-u[4][3]=-k()
-u[3][3]=-k()
-u[2][3]=-k()
-v[1][3]=-k()
-v[1][2]=-k()
 
-setBoundarySurface()
-setSurface()
+for i in range(N-1):
+  for j in range(N-1):
+    if types[i][j]==FULL and types[i+1][j]==FULL:
+      u[i+1][j]=np.random.rand()*0.6-0.3
+    if types[i][j]==FULL and types[i][j+1]==FULL:
+      v[i+1][j]=np.random.rand()*0.6-0.3
 
 while 1:
+  setBoundarySurface()
   pressureStep()
   velStep()
   setSurface()
   moveParticles()
-  setBoundarySurface()
-  setSurface()
 
   plt.clf()
   plotAll(1)
