@@ -12,14 +12,14 @@ v = np.zeros((N, N+1))
 BOUNDARY, FULL, SURFACE, EMPTY = 0, 1, 2, 3
 types = np.zeros((N,N), dtype=int)
 particles = []
-dt = 0.5
+dt = 0.2
 dx = 1
 dy = 1
 atmP = 0 #Atmospheric pressure
 waterP = 0.2
 
 gx = 0
-gy = -.02
+gy = -.04
 
 def interp(f, p1, p2):
   return (f[p1[0]][p1[1]]+f[p2[0]][p2[1]])/2.0
@@ -75,22 +75,27 @@ def setBoundarySurface():
     u[N][i] = -u[N-2][i]
     v[i][0] = -v[i][2]
     v[i][N] = -v[i][N-2]
-  #Set border vel - tangential
-  for i in range(2,N-1):
-    u[i][0] = u[i][1]
-    u[i][N-1] = u[i][N-2]
-    v[0][i] = v[1][i]
-    v[N-1][i] = v[N-2][i]
   #Set border vel - wall
   for i in range(1,N-1):
     u[1][i] = 0
     u[N-1][i] = 0
     v[i][1] = 0
     v[i][N-1] = 0
-  u[1][0]=0
-  v[0][1]=0
-  u[N-1][0]=0
-  v[0][N-1]=0
+  #Set border vel - tangential
+  for i in range(1,N):
+    u[i][0] = u[i][1]
+    u[i][N-1] = u[i][N-2]
+    v[0][i] = v[1][i]
+    v[N-1][i] = v[N-2][i]
+  u[0][0]=0
+  v[0][0]=0
+  u[N][0]=0
+  v[0][N]=0
+  u[0][N-1]=0
+  v[N-1][0]=0
+  u[N][N-1]=0
+  v[N-1][N]=0
+
   #Set border pressure
   for i in range(1,N-1):
     p[0][i]=p[1][i]
@@ -106,6 +111,48 @@ def setBoundarySurface():
         v[i][j+1]=0
         v[i][j]=0
         p[i][j]=atmP
+
+def setSurface():
+  global u, v
+  u2 = np.copy(u)
+  v2 = np.copy(v)
+  for i in range(N):
+    for j in range(N):
+      if types[i][j]==SURFACE:
+        #     EMPTY
+        #     L B T R
+        m = {(1,0,0,0): (-v[i][j]-v[i][j+1]+u[i+1][j],None,None,None),
+             (0,1,0,0): (None,-u[i][j]+v[i][j+1]+u[i+1][j],None,None),
+             (0,0,1,0): (None,None,u[i][j]+v[i][j]-u[i+1][j],None),
+             (0,0,0,1): (None,None,None,u[i][j]+v[i][j]-v[i][j+1]),
+             
+             (1,1,0,0): (u[i+1][j],v[i][j+1],None,None,None),
+             (1,0,1,0): (u[i+1][j],None,v[i][j],None,None),
+             (1,0,0,1): (None,None,None,None),
+             (0,1,1,0): (None,None,None,None),
+             (0,1,0,1): (None,v[i][j+1],None,u[i][j]),
+             (0,0,1,1): (None,None,v[i][j],u[i][j]),
+             
+             (1,1,1,0): (u[i+1][j],None,None,None),
+             (1,1,0,1): (None,v[i][j+1],None,None),
+             (1,0,1,1): (None,None,v[i][j],None),
+             (0,1,1,1): (None,None,None,u[i][j]),
+             
+             (1,1,1,1): (gx,gy,gy,gx)}
+        diff = m[(int(types[i-1][j]==EMPTY), int(types[i][j-1]==EMPTY),
+                  int(types[i][j+1]==EMPTY), int(types[i+1][j]==EMPTY))]
+        if diff[0]:
+          u2[i][j]=diff[0]
+        if diff[1]:
+          v2[i][j]=diff[1]
+        if diff[2]:
+          v2[i][j+1]=diff[2]
+        if diff[3]:
+          u2[i+1][j]=diff[3]
+
+        p[i][j]=atmP
+  u = u2
+  v = v2
 
 def pressureStep():
   A = np.zeros((N*N, N*N))
@@ -155,8 +202,8 @@ def pressureStep():
   x, info = scipy.sparse.linalg.cg(A, b)
   for i in range(N):
     for j in range(N):
-      #if types[i][j]==FULL:
-      p[i][j]=x[i*N+j]
+      if types[i][j]==FULL:
+        p[i][j]=x[i*N+j]
 
 def velStep():
   global u, v
@@ -205,47 +252,6 @@ def velStep():
   u = u2
   v = v2
 
-def setSurface():
-  global u, v
-  u2 = np.copy(u)
-  v2 = np.copy(v)
-  for i in range(N):
-    for j in range(N):
-      if types[i][j]==SURFACE:
-        #     EMPTY
-        #     L B T R
-        m = {(1,0,0,0): (-v[i][j]-v[i][j+1]+u[i+1][j],None,None,None),
-             (0,1,0,0): (None,-u[i][j]+v[i][j+1]+u[i+1][j],None,None),
-             (0,0,1,0): (None,None,u[i][j]+v[i][j]-u[i+1][j],None),
-             (0,0,0,1): (None,None,None,u[i][j]+v[i][j]-v[i][j+1]),
-             
-             (1,1,0,0): (u[i+1][j],v[i][j+1],None,None,None),
-             (1,0,1,0): (u[i+1][j],None,v[i][j],None,None),
-             (1,0,0,1): (None,None,None,None),
-             (0,1,1,0): (None,None,None,None),
-             (0,1,0,1): (None,v[i][j+1],None,u[i][j]),
-             (0,0,1,1): (None,None,v[i][j],u[i][j]),
-             
-             (1,1,1,0): (u[i+1][j],None,None,None),
-             (1,1,0,1): (None,v[i][j+1],None,None),
-             (1,0,1,1): (None,None,v[i][j],None),
-             (0,1,1,1): (None,None,None,u[i][j]),
-             
-             (1,1,1,1): (gx,gy,gy,gx)}
-        diff = m[(int(types[i-1][j]==EMPTY), int(types[i][j-1]==EMPTY),
-                  int(types[i][j+1]==EMPTY), int(types[i+1][j]==EMPTY))]
-        if diff[0]:
-          u2[i][j]=diff[0]
-        if diff[1]:
-          v2[i][j]=diff[1]
-        if diff[2]:
-          v2[i][j+1]=diff[2]
-        if diff[3]:
-          u2[i+1][j]=diff[3]
-
-        p[i][j]=atmP
-  u = u2
-  v = v2
 
 def moveParticles():
   for i in range(len(particles)):
@@ -255,19 +261,10 @@ def moveParticles():
 
 def plotAll(i):
   plt.figure(i, figsize=(7, 7))
-  p_types = np.zeros((N, N*2))
-  k = np.amax(p)/3
-  for i in range(N):
-    for j in range(2*N):
-      if j%2==0:
-        p_types[i][j]=p[j//2][i]
-      else:
-        p_types[i][j]=types[(j-1)//2][i]*k
-  #plt.pcolormesh(np.arange(0, N+0.1, 0.5), np.arange(N+0.1), p_types)
   plt.pcolormesh(types.T)
   plt.colorbar()
-  plt.quiver(np.arange(0, N+0.5), np.arange(0.5, N), u.T, np.zeros(u.T.shape), angles='xy', scale_units='xy', scale=1, color="red")
-  plt.quiver(np.arange(0.5, N), np.arange(0, N+0.5), np.zeros(v.T.shape), v.T, angles='xy', scale_units='xy', scale=1, color="red")
+  #plt.quiver(np.arange(0, N+0.5), np.arange(0.5, N), u.T, np.zeros(u.T.shape), angles='xy', scale_units='xy', scale=1, color="red")
+  #plt.quiver(np.arange(0.5, N), np.arange(0, N+0.5), np.zeros(v.T.shape), v.T, angles='xy', scale_units='xy', scale=1, color="red")
 
   plt.xticks(np.arange(0, N+1))
   plt.yticks(np.arange(0, N+1))
@@ -290,7 +287,7 @@ for i in range(N):
       particles.append((i+0.25, j+0.75))
       particles.append((i+0.75, j+0.25))
       particles.append((i+0.75, j+0.75))
-      p[i][j]=waterP
+      p[i][j]=waterP*(3-j)
 
 for i in range(N-1):
   for j in range(N-1):
@@ -301,9 +298,9 @@ for i in range(N-1):
 
 while 1:
   setBoundarySurface()
+  setSurface()
   pressureStep()
   velStep()
-  setSurface()
   moveParticles()
 
   plt.clf()
