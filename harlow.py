@@ -261,20 +261,20 @@ def moveParticles():
 
 def plotAll(i):
   plt.figure(i, figsize=(7, 7))
-  plt.pcolormesh(types.T)
+  plt.pcolormesh(p.T)
   plt.colorbar()
-  #plt.quiver(np.arange(0, N+0.5), np.arange(0.5, N), u.T, np.zeros(u.T.shape), angles='xy', scale_units='xy', scale=1, color="red")
-  #plt.quiver(np.arange(0.5, N), np.arange(0, N+0.5), np.zeros(v.T.shape), v.T, angles='xy', scale_units='xy', scale=1, color="red")
+  plt.quiver(np.arange(0, N+0.5), np.arange(0.5, N), u.T, np.zeros(u.T.shape), angles='xy', scale_units='xy', scale=1, color="red")
+  plt.quiver(np.arange(0.5, N), np.arange(0, N+0.5), np.zeros(v.T.shape), v.T, angles='xy', scale_units='xy', scale=1, color="red")
+
+  for x, y in particles:
+    dx, dy = interp2(x, y)
+    plt.arrow(x, y, dx, dy, head_width=0.05, head_length=0.1,
+              color="black", length_includes_head=True)
 
   plt.xticks(np.arange(0, N+1))
   plt.yticks(np.arange(0, N+1))
   plt.grid()
 
-def plotParticles():
-  for x, y in particles:
-    dx, dy = interp2(x, y)
-    plt.arrow(x, y, dx, dy, head_width=0.05, head_length=0.1,
-              color="black", length_includes_head=True)
 
 for i in range(1, N-1):
   for j in range(1, N//2):
@@ -287,25 +287,28 @@ for i in range(N):
       particles.append((i+0.25, j+0.75))
       particles.append((i+0.75, j+0.25))
       particles.append((i+0.75, j+0.75))
-      p[i][j]=waterP*(3-j)
+      p[i][j]=waterP
 
 for i in range(N-1):
   for j in range(N-1):
     if types[i][j]==FULL and types[i+1][j]==FULL:
-      u[i+1][j]=np.random.rand()*0.6-0.3
+      u[i+1][j]=np.random.rand()-0.5
     if types[i][j]==FULL and types[i][j+1]==FULL:
-      v[i+1][j]=np.random.rand()*0.6-0.3
+      v[i+1][j]=np.random.rand()-0.5
 
 while 1:
   setBoundarySurface()
   setSurface()
   pressureStep()
   velStep()
+
+  setBoundarySurface()
+  setSurface()
+
   moveParticles()
 
   plt.clf()
   plotAll(1)
-  plotParticles()
   plt.pause(0.1)
   #input('update?')
 
