@@ -9,8 +9,12 @@
 #define animate_h
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
-float *vertices;
+int N = 8;
+int NParticles;
+float *particles;
+
 void initAnimation(void);
 void animate(void);
 

@@ -33,13 +33,13 @@ class ViewController: NSViewController, MTKViewDelegate {
     }catch{
       print("Error: \(error)")
     }
-    vertexBuffer = device.makeBuffer(length: 6 * 4, options: [])!
+    vertexBuffer = device.makeBuffer(length: Int(NParticles) * 4, options: [])!
     initAnimation()
   }
   
   func draw(in view: MTKView) {
     animate()
-    vertexBuffer.contents().copyMemory(from: vertices, byteCount: 6*4)
+    vertexBuffer.contents().copyMemory(from: particles, byteCount: Int(NParticles)*4)
     let commandBuffer = commandQueue.makeCommandBuffer()!
     let renderPassDescriptor = view.currentRenderPassDescriptor!
     renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1, 1, 1, 1)
