@@ -15,25 +15,28 @@ float *b, *x;
 float *scratch1, *scratch2, *scratch3, *scratch4;
 int n;
 
-void initCG(int n2, float max_row2){
+void mallocCG(int n2, float max_row2){
   n = n2;
   max_row = max_row2;
   A = (float **)malloc2D(max_row, n, sizeof(float));
   A_i = (int **)malloc2D(max_row, n, sizeof(int));
+  b = (float *)malloc(n * sizeof(float));
+  x = (float *)malloc(n * sizeof(float));
+  scratch1 = (float*)malloc(n * sizeof(float));
+  scratch2 = (float*)malloc(n * sizeof(float));
+  scratch3 = (float*)malloc(n * sizeof(float));
+  scratch4 = (float*)malloc(n * sizeof(float));
+}
+
+void initCG(){
   for(int i=0; i<max_row; i++){
     for(int j=0; j<n; j++){
       A_i[i][j]=-1;
     }
   }
-  b = (float *)malloc(n * sizeof(float));
-  x = (float *)malloc(n * sizeof(float));
   for(int i=0; i<n; i++){
     x[i]=0.0f;
   }
-  scratch1 = (float*) malloc(n * sizeof(float));
-  scratch2 = (float*) malloc(n * sizeof(float));
-  scratch3 = (float*) malloc(n * sizeof(float));
-  scratch4 = (float*) malloc(n * sizeof(float));
 }
 void write_A(int i, int j, float a){
   for (int k=0; k<max_row; k++){
@@ -98,16 +101,19 @@ float *cg(void){
 }
 
 void testCG(void){
-  initCG(10, 3);
-  for (int i=0; i<10; i++){
-    if (i>0) write_A(i, i-1, -2.0f);
-    write_A(i, i, 4.0f);
-    if (i<9) write_A(i, i+1, -2.0f);
-    write_b(i, (float)i);
+  mallocCG(10, 3);
+  for (int c = 1; c<5; c++){
+    initCG();
+    for (int i=0; i<10; i++){
+      if (i>0) write_A(i, i-1, (float)(-1*c));
+      write_A(i, i, (float)(2*c));
+      if (i<9) write_A(i, i+1, (float)(-1*c));
+      write_b(i, (float)i);
+    }
+    float *r = cg();
+    for (int i=0; i<10; i++){
+      printf("%f, ",r[i]);
+    }
+    printf("\n");
   }
-  float *r = cg();
-  for (int i=0; i<10; i++){
-    printf("%f, ",r[i]);
-  }
-  printf("\n");
 }

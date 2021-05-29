@@ -8,7 +8,8 @@
 #ifndef cg_h
 #define cg_h
 
-void initCG(int n, float max_row);
+void mallocCG(int n, float max_row);
+void initCG(void);
 void write_A(int i, int j, float x);
 void write_b(int i, float x);
 float *cg(void);

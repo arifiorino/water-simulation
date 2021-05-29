@@ -176,8 +176,8 @@ void setSurface(void){
   v = tmp;
 }
 
-void pressureSolve(void){
-  initCG(N*N, 5);
+void pressureStep(void){
+  initCG();
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
       if (types[i][j]!=FULL) continue;
@@ -228,7 +228,78 @@ void pressureSolve(void){
   }
 }
 
+void velStep(void){
+  for (int i=0; i<N-1; i++){
+    for (int j=0; j<N; j++){
+      u2[i][j] = u[i][j];
+      v2[i][j] = v[i][j];
+    }
+  }
 
+  for (int i=0; i<N-1; i++){
+    for (int j=0; j<N; j++){
+      if ((types[i][j]==FULL && types[i+1][j]!=BOUNDARY) ||
+          (types[i+1][j]==FULL && types[i][j]!=BOUNDARY) ||
+          (types[i][j]==SURFACE && types[i+1][j]==SURFACE) ||
+          (types[i+1][j]==SURFACE && types[i][j]==SURFACE)){
+        float UCenter = interp(u, i, j, i+1, j);
+        float URCenter = interp(u, i+1, j, i+2, j);
+        float UTRCorner = interp(u, i+1, j, i+1, j+1);
+        float VTRCorner = interp(v, i, j+1, i+1, j+1);
+        float UBRCorner = interp(u, i, j, i, j+1);
+        float VBRCorner = interp(v, i, j, i+1, j);
+        float PCenter = p[i][j];
+        float PRCenter = p[i+1][j];
+        float du = (1/dx)*(UCenter*UCenter - URCenter*URCenter) +
+                   (1/dy)*(UBRCorner*VBRCorner - UTRCorner*VTRCorner) +
+                   gx +
+                   (1/dx)*(PCenter - PRCenter);
+        u2[i+1][j] += dt*du;
+      }
+    }
+  }
+  for (int i=0; i<N; i++){
+    for (int j=0; j<N-1; j++){
+      if ((types[i][j]==FULL && types[i][j+1]!=BOUNDARY) ||
+          (types[i][j+1]==FULL && types[i][j]!=BOUNDARY) ||
+          (types[i][j]==SURFACE && types[i][j+1]==SURFACE) ||
+          (types[i][j+1]==SURFACE && types[i][j]==SURFACE)){
+
+        float VCenter = interp(v, i, j, i, j+1);
+        float VTCenter = interp(v, i, j+1, i, j+2);
+        float VTRCorner = interp(v, i, j+1, i+1, j+1);
+        float UTRCorner = interp(u, i+1, j, i+1, j+1);
+        float VTLCorner = interp(v, i, j+1, i-1, j+1);
+        float UTLCorner = interp(u, i, j, i, j+1);
+        float PCenter = p[i][j];
+        float PTCenter = p[i][j+1];
+        float dv = (1/dy)*(VCenter*VCenter - VTCenter*VTCenter) +
+                   (1/dx)*(VTLCorner*UTLCorner - VTRCorner*UTRCorner) +
+                   gy +
+                   (1/dy)*(PCenter - PTCenter);
+        v2[i][j+1] += dt*dv;
+      }
+    }
+  }
+  //Switch u-u2, v-v2
+  float **tmp = u2;
+  u2 = u;
+  u = tmp;
+  tmp = v2;
+  v2 = v;
+  v = tmp;
+}
+
+void moveParticles(void){
+  for (int i=0; i<NParticles; i++){
+    float x = particles[2*i];
+    float y = particles[2*i+1];
+    float uK = interpU(x, y);
+    float vK = interpV(x, y);
+    particles[2*i] = x+dt*uK;
+    particles[2*i+1] = y+dt*vK;
+  }
+}
 
 void initAnimation(void){
   p = (float**)malloc2D(N, N, sizeof(float));
@@ -237,10 +308,53 @@ void initAnimation(void){
   v = (float**)malloc2D(N, N+1, sizeof(float));
   v2 = (float**)malloc2D(N, N+1, sizeof(float));
   types = (char**)malloc2D(N, N, sizeof(char));
+  mallocCG(N*N, 5);
   NParticles = 72;
   particles = (float*)malloc(NParticles*2*sizeof(float));
+  for (int i=1; i<N-1; i++){
+    for (int j=1; j<N/2; j++){
+      types[i][j]=FULL;
+    }
+  }
+
+  int c = 0;
+  for (int i=0; i<N; i++){
+    for (int j=0; j<N; j++){
+      if (types[i][j]==FULL){
+        particles[c] = i+0.25;
+        particles[c+1] = j+0.25;
+        c+=2;
+        particles[c] = i+0.25;
+        particles[c+1] = j+0.75;
+        c+=2;
+        particles[c] = i+0.75;
+        particles[c+1] = j+0.25;
+        c+=2;
+        particles[c] = i+0.75;
+        particles[c+1] = j+0.75;
+        c+=2;
+        p[i][j]=waterP;
+      }
+    }
+  }
+  for (int i=0; i<N-1; i++){
+    for (int j=0; j<N-1; j++){
+      if (types[i][j]==FULL && types[i+1][j]==FULL)
+        u[i+1][j]=rand()-0.5;
+      if (types[i][j]==FULL && types[i][j+1]==FULL)
+        v[i+1][j]=rand()-0.5;
+    }
+  }
 }
 
 void animate(void){
-  
+  setBoundarySurface();
+  setSurface();
+  pressureStep();
+  velStep();
+
+  setBoundarySurface();
+  setSurface();
+
+  moveParticles();
 }
