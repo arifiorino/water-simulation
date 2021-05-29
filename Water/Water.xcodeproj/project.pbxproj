@@ -32,7 +32,7 @@
 		D4FA7DDB26617E6300A2342B /* Water-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Water-Bridging-Header.h"; sourceTree = "<group>"; };
 		D4FA7DDC26617E6300A2342B /* animate.h */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.c.h; path = animate.h; sourceTree = "<group>"; tabWidth = 2; wrapsLines = 0; };
 		D4FA7DDD26617E6300A2342B /* animate.c */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.c.c; path = animate.c; sourceTree = "<group>"; tabWidth = 2; wrapsLines = 0; };
-		D4FA7DDF26617F6400A2342B /* Render.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Render.metal; sourceTree = "<group>"; };
+		D4FA7DDF26617F6400A2342B /* Render.metal */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.metal; path = Render.metal; sourceTree = "<group>"; tabWidth = 2; wrapsLines = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */

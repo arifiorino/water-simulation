@@ -140,8 +140,15 @@ void setBoundarySurface(void){
 }
 
 void setSurface(void){
+  for (int i=0; i<N+1; i++){
+    for (int j=0; j<N; j++){
+      u2[i][j] = u[i][j];
+      v2[j][i] = v[j][i];
+    }
+  }
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
+      if (types[i][j]!=SURFACE) continue;
       bool L = types[i-1][j]==EMPTY;
       bool B = types[i][j-1]==EMPTY;
       bool T = types[i][j+1]==EMPTY;
@@ -308,6 +315,14 @@ void initAnimation(void){
   v = (float**)malloc2D(N, N+1, sizeof(float));
   v2 = (float**)malloc2D(N, N+1, sizeof(float));
   types = (char**)malloc2D(N, N, sizeof(char));
+  for (int i=0; i<N; i++){
+    for (int j=0; j<N; j++){
+      v[i][j]=0.0f;
+      u[i][j]=0.0f;
+      types[i][j]=0;
+      p[i][j]=0.0f;
+    }
+  }
   mallocCG(N*N, 5);
   NParticles = 72;
   particles = (float*)malloc(NParticles*2*sizeof(float));
@@ -340,9 +355,9 @@ void initAnimation(void){
   for (int i=0; i<N-1; i++){
     for (int j=0; j<N-1; j++){
       if (types[i][j]==FULL && types[i+1][j]==FULL)
-        u[i+1][j]=rand()-0.5;
+        u[i+1][j]=(rand() % 10001) / 10000.0 - 0.5;
       if (types[i][j]==FULL && types[i][j+1]==FULL)
-        v[i+1][j]=rand()-0.5;
+        v[i+1][j]=(rand() % 10001) / 10000.0 - 0.5;
     }
   }
 }

@@ -46,7 +46,7 @@ class ViewController: NSViewController, MTKViewDelegate {
     let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
     renderEncoder.setRenderPipelineState(pipelineState)
     renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-    renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: 3)
+    renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: Int(NParticles))
     renderEncoder.endEncoding()
     commandBuffer.present(view.currentDrawable!)
     commandBuffer.commit()
