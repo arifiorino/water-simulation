@@ -6,6 +6,8 @@
 //
 
 #include "animate.h"
+#include "utils.h"
+#include "cg.h"
 
 #define BOUNDARY 0
 #define FULL 1
@@ -21,15 +23,8 @@ float waterP = 0.2;
 float gx = 0;
 float gy = 0;
 
-void **malloc2D(int w, int h, int s){
-  void **A = (void **)malloc(sizeof(void*)*w);
-  for(int i=0; i < w; i++) {
-    A[i] = (void *)malloc(s*h);
-  }
-  return A;
-}
 
-float interp(float **f, int w, int ax, int ay, int bx, int by){
+float interp(float **f, int ax, int ay, int bx, int by){
   return (f[ax][ay]+f[bx][by])/2.0;
 }
 
@@ -182,8 +177,57 @@ void setSurface(void){
 }
 
 void pressureSolve(void){
-  
+  initCG(N*N, 5);
+  for (int i=0; i<N; i++){
+    for (int j=0; j<N; j++){
+      if (types[i][j]!=FULL) continue;
+      float UCenter = interp(u, i, j, i+1, j);
+      float ULCenter = interp(u, i, j, i-1, j);
+      float URCenter = interp(u, i+1, j, i+2, j);
+
+      float UTRCorner = interp(u, i+1, j, i+1, j+1);
+      float UBRCorner = interp(u, i+1, j, i+1, j-1);
+      float UTLCorner = interp(u, i, j, i, j+1);
+      float UBLCorner = interp(u, i, j, i, j-1);
+
+      float VCenter = interp(v, i, j, i, j+1);
+      float VBCenter = interp(v, i, j, i, j-1);
+      float VTCenter = interp(v, i, j+1, i, j+2);
+
+      float VTRCorner = interp(v, i, j+1, i+1, j+1);
+      float VTLCorner = interp(v, i, j+1, i-1, j+1);
+      float VBRCorner = interp(v, i, j, i+1, j);
+      float VBLCorner = interp(v, i, j, i-1, j);
+
+      float Q = (1/(dx*dx)) * (URCenter*URCenter + ULCenter*ULCenter + 2*(UCenter*UCenter)) +
+                (1/(dy*dy)) * (VTCenter*VTCenter + VBCenter*VBCenter + 2*(VCenter*VCenter)) +
+                2 / (dx*dy) *
+                ((UTRCorner*VTRCorner) + (UBLCorner*VBLCorner) -
+                 (UBRCorner*VBRCorner) - (UTLCorner*VTLCorner));
+      float D = (-u[i][j] + u[i+1][j])/dx +(-v[i][j] + v[i][j+1])/dy;
+      float R = Q - (D/dt);
+      write_b(i*N+j, R);
+      if (types[i+1][j]==FULL)
+        write_A(i*N+j, (i+1)*N+j, -1/(dx*dx));
+      if (types[i-1][j]==FULL)
+        write_A(i*N+j, (i-1)*N+j, -1/(dx*dx));
+      write_A(i*N+j, i*N+j, 2/(dx*dx)+2/(dy*dy));
+      if (types[i][j+1]==FULL)
+        write_A(i*N+j, i*N+(j+1), -1/(dy*dy));
+      if (types[i][j-1]==FULL)
+        write_A(i*N+j, i*N+(j-1), -1/(dy*dy));
+    }
+  }
+  float *x = cg();
+  for (int i=0; i<N; i++){
+    for (int j=0; j<N; j++){
+      if (types[i][j]==FULL){
+        p[i][j]=x[i*N+j];
+      }
+    }
+  }
 }
+
 
 
 void initAnimation(void){

@@ -21,7 +21,7 @@ class ViewController: NSViewController, MTKViewDelegate {
     let mtkView = self.view as! MTKView
     let device = MTLCreateSystemDefaultDevice()!
     mtkView.device = device
-    mtkView.delegate = self
+    //mtkView.delegate = self
     commandQueue = device.makeCommandQueue()!
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
     let library = device.makeDefaultLibrary()!
@@ -33,7 +33,7 @@ class ViewController: NSViewController, MTKViewDelegate {
     }catch{
       print("Error: \(error)")
     }
-    vertexBuffer = device.makeBuffer(length: Int(NParticles) * 4, options: [])!
+    //vertexBuffer = device.makeBuffer(length: Int(NParticles) * 4, options: [])!
     initAnimation()
   }
   

@@ -8,9 +8,6 @@
 #ifndef animate_h
 #define animate_h
 
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
 int N = 8;
 int NParticles;
 float *particles;
