@@ -22,6 +22,14 @@ for j in range(1,N-1):
     u[i+1][j]=np.random.rand()*2.0-1.0
     v[i][j]=np.random.rand()*2.0-1.0
     v[i][j+1]=np.random.rand()*2.0-1.0
+particles = []
+for i in range(N):
+  for j in range(N):
+    if types[i][j]==FLUID:
+      particles.append(np.array([i+0.25,j+0.25]))
+      particles.append(np.array([i+0.25,j+0.75]))
+      particles.append(np.array([i+0.75,j+0.25]))
+      particles.append(np.array([i+0.75,j+0.75]))
 
 def bilinear_interp_u(p):
   x, y = p
@@ -74,7 +82,13 @@ def RK2(curr):
                  bilinear_interp_v(curr)])
   k2 = np.array([bilinear_interp_u(curr + 0.5*dt*k1),
                  bilinear_interp_v(curr + 0.5*dt*k1)])
-  return dt * k2
+  return curr + dt * k2
+def backwards_RK2(curr):
+  k1 = np.array([bilinear_interp_u(curr),
+                 bilinear_interp_v(curr)])
+  k2 = np.array([bilinear_interp_u(curr - 0.5*dt*k1),
+                 bilinear_interp_v(curr - 0.5*dt*k1)])
+  return curr - dt * k2
 
 def advect():
   global u, v
@@ -82,14 +96,14 @@ def advect():
   for i in range(N+1):
     for j in range(N):
       curr = np.array([i, j+0.5])
-      prev = curr - RK2(curr)
+      prev = backwards_RK2(curr)
       u2[i][j]=bilinear_interp_u(prev)
       
   v2 = np.zeros((N,N+1))
   for i in range(N):
     for j in range(N+1):
       curr = np.array([i+0.5, j])
-      prev = curr - RK2(curr)
+      prev = backwards_RK2(curr)
       v2[i][j]=bilinear_interp_v(prev)
   u = u2
   v = v2
@@ -180,6 +194,16 @@ def project():
   u = u2
   v = v2
 
+def move_particles():
+  for i in range(N):
+    for j in range(N):
+      if types[i][j]!=SOLID:
+        types[i][j]=EMPTY
+  for idx in range(len(particles)):
+    particles[idx]=RK2(particles[idx])
+    i,j=particles[idx]
+    types[int(i)][int(j)]=FLUID
+
 def plot(i=0):
   plt.clf()
   plt.figure(i)
@@ -188,6 +212,8 @@ def plot(i=0):
              u.T, np.zeros(u.T.shape), angles='xy', scale_units='xy', scale=1, color="red")
   plt.quiver(np.arange(0.5, N), np.arange(0, N+0.5),
              np.zeros(v.T.shape), v.T, angles='xy', scale_units='xy', scale=1, color="red")
+  for x,y in particles:
+    plt.plot(x, y, marker='o', markersize=5, color='black')
 
   plt.xticks(np.arange(0, N+1))
   plt.yticks(np.arange(0, N+1))
@@ -197,11 +223,12 @@ def plot(i=0):
 project()
 while 1:
   advect()
+  project()
+  move_particles()
   for i in range(N):
     for j in range(N-1):
       if types[i][j]==FLUID or types[i][j+1]==FLUID:
         v[i][j+1] += dt*gy
-  project()
   plot()
 
 plt.show()
