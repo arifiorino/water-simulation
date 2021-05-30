@@ -14,6 +14,17 @@ void **malloc2D(int w, int h, int s){
   }
   return A;
 }
+void free2D(void **p, int w){
+  for(int i=0; i < w; i++) {
+    free(p[i]);
+  }
+  free(p);
+}
+void swap2D(float ***a, float ***b){
+  float **tmp = *a;
+  *a = *b;
+  *b = tmp;
+}
 
 void print2D(float **matrix, int w, int h){
   printf("[[");

@@ -34,11 +34,11 @@ class ViewController: NSViewController, MTKViewDelegate {
       print("Error: \(error)")
     }
     initAnimation()
-    vertexBuffer = device.makeBuffer(length: Int(NParticles) * 2 * 4, options: [])!
+    vertexBuffer = device.makeBuffer(length: Int(n_particles) * 2 * 4, options: [])!
   }
   
   func draw(in view: MTKView) {
-    vertexBuffer.contents().copyMemory(from: particles, byteCount: Int(NParticles) * 2 * 4)
+    vertexBuffer.contents().copyMemory(from: particles, byteCount: Int(n_particles) * 2 * 4)
     animate()
     let commandBuffer = commandQueue.makeCommandBuffer()!
     let renderPassDescriptor = view.currentRenderPassDescriptor!
@@ -46,7 +46,7 @@ class ViewController: NSViewController, MTKViewDelegate {
     let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
     renderEncoder.setRenderPipelineState(pipelineState)
     renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-    renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: Int(NParticles))
+    renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: Int(n_particles))
     renderEncoder.endEncoding()
     commandBuffer.present(view.currentDrawable!)
     commandBuffer.commit()

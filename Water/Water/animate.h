@@ -9,7 +9,7 @@
 #define animate_h
 
 int N = 8;
-int NParticles;
+int n_particles;
 float *particles;
 
 void initAnimation(void);

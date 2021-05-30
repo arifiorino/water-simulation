@@ -9,6 +9,7 @@
 #define cg_h
 
 void mallocCG(int n, float max_row);
+void freeCG(void);
 void initCG(void);
 void write_A(int i, int j, float x);
 void write_b(int i, float x);

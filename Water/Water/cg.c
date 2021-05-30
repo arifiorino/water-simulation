@@ -27,6 +27,16 @@ void mallocCG(int n2, float max_row2){
   scratch3 = (float*)malloc(n * sizeof(float));
   scratch4 = (float*)malloc(n * sizeof(float));
 }
+void freeCG(void){
+  free2D((void**)A, max_row);
+  free2D((void**)A_i, max_row);
+  free(b);
+  free(x);
+  free(scratch1);
+  free(scratch2);
+  free(scratch3);
+  free(scratch4);
+}
 
 void initCG(){
   for(int i=0; i<max_row; i++){

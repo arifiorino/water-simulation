@@ -7,7 +7,7 @@ N = 16
 u = np.zeros((N+1, N))
 v = np.zeros((N, N+1))
 dt = 0.2
-gy = -0.2
+gy = -0.4
 SOLID, FLUID, EMPTY = 0, 1, 2
 types = np.zeros((N, N), dtype=int)+EMPTY
 for i in range(N):
@@ -18,10 +18,10 @@ for i in range(N):
 for j in range(1,N-1):
   for i in range(1,N//2):
     types[i][j]=FLUID
-    u[i][j]=np.random.rand()*2.0-1.0
-    u[i+1][j]=np.random.rand()*2.0-1.0
-    v[i][j]=np.random.rand()*2.0-1.0
-    v[i][j+1]=np.random.rand()*2.0-1.0
+    #u[i][j]=np.random.rand()*2.0-1.0
+    #u[i+1][j]=np.random.rand()*2.0-1.0
+    #v[i][j]=np.random.rand()*2.0-1.0
+    #v[i][j+1]=np.random.rand()*2.0-1.0
 particles = []
 for i in range(N):
   for j in range(N):
@@ -76,7 +76,6 @@ def bilinear_interp_v(p):
   c = np.array([y2-y, y-y1])
   return a @ b @ c.T
 
-# Returns vector of how curr will move
 def RK2(curr):
   k1 = np.array([bilinear_interp_u(curr),
                  bilinear_interp_v(curr)])
@@ -218,7 +217,7 @@ def plot(i=0):
   plt.xticks(np.arange(0, N+1))
   plt.yticks(np.arange(0, N+1))
   plt.grid()
-  plt.pause(0.1)
+  plt.pause(0.01)
 
 project()
 while 1:
