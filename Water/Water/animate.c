@@ -236,10 +236,10 @@ void pressureStep(void){
 }
 
 void velStep(void){
-  for (int i=0; i<N-1; i++){
+  for (int i=0; i<N+1; i++){
     for (int j=0; j<N; j++){
       u2[i][j] = u[i][j];
-      v2[i][j] = v[i][j];
+      v2[j][i] = v[j][i];
     }
   }
 
@@ -284,6 +284,9 @@ void velStep(void){
                    (1/dx)*(VTLCorner*UTLCorner - VTRCorner*UTRCorner) +
                    gy +
                    (1/dy)*(PCenter - PTCenter);
+        if (dv>5.0f || dv<-5.0f){
+          printf("err\n");
+        }
         v2[i][j+1] += dt*dv;
       }
     }
@@ -317,10 +320,14 @@ void initAnimation(void){
   types = (char**)malloc2D(N, N, sizeof(char));
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
-      v[i][j]=0.0f;
-      u[i][j]=0.0f;
       types[i][j]=0;
       p[i][j]=0.0f;
+    }
+  }
+  for (int i=0; i<N+1; i++){
+    for (int j=0; j<N; j++){
+      u[i][j]=0.0f;
+      v[j][i]=0.0f;
     }
   }
   mallocCG(N*N, 5);
@@ -357,19 +364,21 @@ void initAnimation(void){
       if (types[i][j]==FULL && types[i+1][j]==FULL)
         u[i+1][j]=(rand() % 10001) / 10000.0 - 0.5;
       if (types[i][j]==FULL && types[i][j+1]==FULL)
-        v[i+1][j]=(rand() % 10001) / 10000.0 - 0.5;
+        v[i][j+1]=(rand() % 10001) / 10000.0 - 0.5;
     }
   }
 }
-
+//3461
 void animate(void){
   setBoundarySurface();
   setSurface();
+  setBoundarySurface();
   pressureStep();
   velStep();
 
   setBoundarySurface();
   setSurface();
+  setBoundarySurface();
 
   moveParticles();
 }

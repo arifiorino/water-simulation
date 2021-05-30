@@ -75,6 +75,7 @@ void vecMulAdd(float *r, float c, float *v, float *u){
     r[i]=c*v[i]+u[i];
   }
 }
+//3461
 float *cg(void){
   float *r = scratch1;
   float *p = scratch2;
@@ -84,12 +85,16 @@ float *cg(void){
   vecMulAdd(r, -1.0f, Ax, b);
   memcpy(p, r, n * sizeof(float));
   float rsold = dot(r, r);
-  for (int i=1; i<=n; i++){
+  printf("starting cg\n");
+  for (int i=0; i<n; i++){
     AMul(p, Ap);
     float alpha = rsold / dot(p, Ap);
     vecMulAdd(x, alpha, p, x);
     vecMulAdd(r, -1.0f * alpha, Ap, r);
     float rsnew = dot(r, r);
+    if (rsnew>10.0f){
+      printf("err\n");
+    }
     printf("^2 err: %f\n",rsnew);
     if (sqrt(rsnew) < epsilon){
       break;
@@ -116,4 +121,21 @@ void testCG(void){
     }
     printf("\n");
   }
+}
+
+void printAllA(void){
+  float **AllA = (float **)malloc2D(n, n, sizeof(float));
+  for (int i=0; i<n; i++){
+    for (int j=0; j<n; j++){
+      AllA[i][j] = 0.0f;
+    }
+  }
+  for (int i=0; i<n; i++){
+    for (int k=0; k<max_row; k++){
+      if (A_i[k][i]==-1) continue;
+      int j = A_i[k][i];
+      AllA[i][j] = A[k][i];
+    }
+  }
+  print2D(AllA, n, n);
 }

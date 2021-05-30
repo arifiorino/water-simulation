@@ -14,5 +14,6 @@
 #include <stdbool.h>
 #include <math.h>
 void **malloc2D(int w, int h, int s);
+void print2D(float **matrix, int w, int h);
 
 #endif /* utils_h */

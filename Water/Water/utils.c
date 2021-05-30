@@ -14,3 +14,25 @@ void **malloc2D(int w, int h, int s){
   }
   return A;
 }
+
+void print2D(float **matrix, int w, int h){
+  printf("[[");
+  for (int i = 0; i < w; ++i){
+    printf(" [");
+    for (int j = 0; j < h; ++j)
+      printf("%f, ", matrix[i][j]);
+    printf("],\n");
+  }
+  printf("]\n");
+}
+
+void print2DInt(int **matrix, int w, int h){
+  printf("[[");
+  for (int i = 0; i < w; ++i){
+    printf(" [");
+    for (int j = 0; j < h; ++j)
+      printf("%d, ", matrix[i][j]);
+    printf("],\n");
+  }
+  printf("]\n");
+}

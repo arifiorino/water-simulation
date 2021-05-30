@@ -294,7 +294,7 @@ for i in range(N-1):
     if types[i][j]==FULL and types[i+1][j]==FULL:
       u[i+1][j]=np.random.rand()-0.5
     if types[i][j]==FULL and types[i][j+1]==FULL:
-      v[i+1][j]=np.random.rand()-0.5
+      v[i][j+1]=np.random.rand()-0.5
 
 while 1:
   setBoundarySurface()
