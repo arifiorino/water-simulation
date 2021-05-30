@@ -6,8 +6,8 @@ N = 16
 
 u = np.zeros((N+1, N))
 v = np.zeros((N, N+1))
-p = np.zeros((N, N))
-dt = 0.01
+dt = 0.2
+gy = -0.2
 SOLID, FLUID, EMPTY = 0, 1, 2
 types = np.zeros((N, N), dtype=int)+EMPTY
 for i in range(N):
@@ -15,14 +15,90 @@ for i in range(N):
   types[i][0]=SOLID
   types[N-1][i]=SOLID
   types[i][N-1]=SOLID
-for i in range(1,N-1):
-  for j in range(1,N//2):
+for i in range(1,N//2):
+  for j in range(1,N-1):
     types[i][j]=FLUID
-    u[i][j]=np.random.rand()-0.5
-    u[i+1][j]=np.random.rand()-0.5
-    v[i][j]=np.random.rand()-0.5
-    v[i][j+1]=np.random.rand()-0.5
+    u[i][j]=np.random.rand()*2.0-1.0
+    u[i+1][j]=np.random.rand()*2.0-1.0
+    v[i][j]=np.random.rand()*2.0-1.0
+    v[i][j+1]=np.random.rand()*2.0-1.0
 
+def vS(i, j):
+  i=max(i,0)
+  i=min(i,N-1)
+  j=max(j,0)
+  j=min(j,N)
+  return v[i][j]
+def uS(i, j):
+  i=max(i,0)
+  i=min(i,N)
+  j=max(j,0)
+  j=min(j,N-1)
+  return u[i][j]
+
+def bilinear_interp_u(p):
+  x, y = p
+
+  x=max(x,0)
+  x=min(x,N-0.0001)
+  y=max(y,0.5)
+  y=min(y,N-0.5001)
+
+  x1 = int(x)
+  x2 = x1+1
+  y1 = int(y-0.5)+0.5
+  y2 = y1+1
+  i = int(x)
+  j = int(y-0.5)
+  Q11 = u[i][j]
+  Q12 = u[i][j+1]
+  Q21 = u[i+1][j]
+  Q22 = u[i+1][j+1]
+  a = np.array([x2-x, x-x1])
+  b = np.array([[Q11, Q12], [Q21, Q22]])
+  c = np.array([y2-y, y-y1])
+  return a @ b @ c.T
+def bilinear_interp_v(p):
+  x, y = p
+
+  x=max(x,0.5)
+  x=min(x,N-0.5001)
+  y=max(y,0)
+  y=min(y,N-0.0001)
+
+  x1 = int(x-0.5)+0.5
+  x2 = x1+1
+  y1 = int(y)
+  y2 = y1+1
+  i = int(x-0.5)
+  j = int(y)
+  Q11 = v[i][j]
+  Q12 = v[i][j+1]
+  Q21 = v[i+1][j]
+  Q22 = v[i+1][j+1]
+  a = np.array([x2-x, x-x1])
+  b = np.array([[Q11, Q12], [Q21, Q22]])
+  c = np.array([y2-y, y-y1])
+  return a @ b @ c.T
+
+def advect():
+  global u, v
+  u2 = np.zeros((N+1, N))
+  for i in range(N+1):
+    for j in range(N):
+      curr = np.array([i, j+0.5])
+      vel = np.array([uS(i,j), (vS(i-1,j-1)+vS(i+1,j-1)+vS(i-1,j+1)+vS(i+1,j+1))/4])
+      prev = curr - dt*vel
+      u2[i][j] = bilinear_interp_u(prev)
+  v2 = np.zeros((N, N+1))
+  for i in range(N):
+    for j in range(N+1):
+      curr = np.array([i+0.5, j])
+      vel = np.array([(uS(i-1,j-1)+uS(i+1,j-1)+uS(i-1,j+1)+uS(i+1,j+1))/4, vS(i,j)])
+      prev = curr - dt*vel
+      v2[i][j] = bilinear_interp_v(prev)
+  u = u2
+  v = v2
 
 def project():
   global u, v
@@ -62,12 +138,7 @@ def project():
       non_solid+=1
     A[idx][idx]=non_solid
     b[idx]=-(1/dt)*D
-  print('eig',np.linalg.eigvals(A))
   x, _ = scipy.sparse.linalg.cg(A, b)
-  for i in range(N):
-    for j in range(N):
-      if (i,j) in fluid_cells:
-        p[i][j] = x[fluid_dict[(i,j)]]
   u2 = np.copy(u)
   for i in range(N-1):
     for j in range(N):
@@ -116,10 +187,9 @@ def project():
   v = v2
 
 def plot(i=0):
+  plt.clf()
   plt.figure(i)
-  plt.pcolormesh(p.T)
-  plt.colorbar()
-  plt.figure(i, figsize=(7, 7))
+  plt.pcolormesh(types.T)
   plt.quiver(np.arange(0, N+0.5), np.arange(0.5, N),
              u.T, np.zeros(u.T.shape), angles='xy', scale_units='xy', scale=1, color="red")
   plt.quiver(np.arange(0.5, N), np.arange(0, N+0.5),
@@ -130,8 +200,14 @@ def plot(i=0):
   plt.grid()
   plt.pause(0.1)
 
-plot(0)
 project()
-plot(1)
+while 1:
+  advect()
+  for i in range(N):
+    for j in range(N-1):
+      if types[i][j]==FLUID or types[i][j+1]==FLUID:
+        v[i][j+1] += dt*gy
+  project()
+  plot()
 
 plt.show()
