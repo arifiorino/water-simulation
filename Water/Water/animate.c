@@ -198,7 +198,7 @@ void project(void){
       non_solid+=1;
     }
     write_A(idx, idx, non_solid);
-    write_b(idx, -(1/dt)*D);
+    write_b(idx, -(1.0/dt)*D);
   }
   float *x = cg();
   for (int i=0; i<N-1; i++){

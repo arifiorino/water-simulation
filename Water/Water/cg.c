@@ -95,17 +95,16 @@ float *cg(void){
   vecMulAdd(r, -1.0f, Ax, b);
   memcpy(p, r, n * sizeof(float));
   float rsold = dot(r, r);
-  printf("starting cg\n");
   for (int i=0; i<n; i++){
     AMul(p, Ap);
-    float alpha = rsold / dot(p, Ap);
+    float alpha;
+    if (rsold == 0.0f)
+      alpha = 0.0f;
+    else
+      alpha = rsold / dot(p, Ap);
     vecMulAdd(x, alpha, p, x);
     vecMulAdd(r, -1.0f * alpha, Ap, r);
     float rsnew = dot(r, r);
-    if (rsnew>10.0f){
-      printf("err\n");
-    }
-    printf("^2 err: %f\n",rsnew);
     if (sqrt(rsnew) < epsilon){
       break;
     }

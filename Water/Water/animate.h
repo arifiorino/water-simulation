@@ -8,7 +8,7 @@
 #ifndef animate_h
 #define animate_h
 
-int N = 8;
+int N = 64;
 int n_particles;
 float *particles;
 

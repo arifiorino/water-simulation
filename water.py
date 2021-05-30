@@ -2,6 +2,13 @@ import scipy.sparse.linalg
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+# TODO:
+# INTERPOLATE SURFACE VELOCITIES!!!
+# INTERPOLATE BOUNDARY VELOCITIES!!!
+# IF PARTICLE GOES INTO BOUNDARY!!!
+# SMALLER TIMESTEP???
+
 N = 16
 
 u = np.zeros((N+1, N))
