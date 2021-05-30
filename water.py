@@ -15,26 +15,13 @@ for i in range(N):
   types[i][0]=SOLID
   types[N-1][i]=SOLID
   types[i][N-1]=SOLID
-for i in range(1,N//2):
-  for j in range(1,N-1):
+for j in range(1,N-1):
+  for i in range(1,N//2):
     types[i][j]=FLUID
     u[i][j]=np.random.rand()*2.0-1.0
     u[i+1][j]=np.random.rand()*2.0-1.0
     v[i][j]=np.random.rand()*2.0-1.0
     v[i][j+1]=np.random.rand()*2.0-1.0
-
-def vS(i, j):
-  i=max(i,0)
-  i=min(i,N-1)
-  j=max(j,0)
-  j=min(j,N)
-  return v[i][j]
-def uS(i, j):
-  i=max(i,0)
-  i=min(i,N)
-  j=max(j,0)
-  j=min(j,N-1)
-  return u[i][j]
 
 def bilinear_interp_u(p):
   x, y = p
@@ -81,22 +68,29 @@ def bilinear_interp_v(p):
   c = np.array([y2-y, y-y1])
   return a @ b @ c.T
 
+# Returns vector of how curr will move
+def RK2(curr):
+  k1 = np.array([bilinear_interp_u(curr),
+                 bilinear_interp_v(curr)])
+  k2 = np.array([bilinear_interp_u(curr + 0.5*dt*k1),
+                 bilinear_interp_v(curr + 0.5*dt*k1)])
+  return dt * k2
+
 def advect():
   global u, v
-  u2 = np.zeros((N+1, N))
+  u2 = np.zeros((N+1,N))
   for i in range(N+1):
     for j in range(N):
       curr = np.array([i, j+0.5])
-      vel = np.array([uS(i,j), (vS(i-1,j-1)+vS(i+1,j-1)+vS(i-1,j+1)+vS(i+1,j+1))/4])
-      prev = curr - dt*vel
-      u2[i][j] = bilinear_interp_u(prev)
-  v2 = np.zeros((N, N+1))
+      prev = curr - RK2(curr)
+      u2[i][j]=bilinear_interp_u(prev)
+      
+  v2 = np.zeros((N,N+1))
   for i in range(N):
     for j in range(N+1):
       curr = np.array([i+0.5, j])
-      vel = np.array([(uS(i-1,j-1)+uS(i+1,j-1)+uS(i-1,j+1)+uS(i+1,j+1))/4, vS(i,j)])
-      prev = curr - dt*vel
-      v2[i][j] = bilinear_interp_v(prev)
+      prev = curr - RK2(curr)
+      v2[i][j]=bilinear_interp_v(prev)
   u = u2
   v = v2
 

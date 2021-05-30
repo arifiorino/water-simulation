@@ -6,39 +6,25 @@ N = 8
 
 #u = np.random.rand(N+1, N)-0.5
 #v = np.random.rand(N, N+1)-0.5
-u = np.zeros((N+1, N))+0.5
-v = np.zeros((N, N+1))+0.5
+u = np.zeros((N+1, N))
+v = np.zeros((N, N+1))
 for i in range(N):
-  u[0][i]=0
-  v[i][0]=0
-u[1][0]=1
-u[0][1]=1
-v[0][1]=1
-v[1][0]=1
+  for j in range(N//2+1):
+    u[j][i]=-0.5
+    u[N-j][i]=0.5
+    v[i][j]=-0.5
+    v[i][N-j]=0.5
 
 dt = 0.1
 
-def vS(i, j):
-  i=max(i,0)
-  i=min(i,N-1)
-  j=max(j,0)
-  j=min(j,N)
-  return v[i][j]
-def uS(i, j):
-  i=max(i,0)
-  i=min(i,N)
-  j=max(j,0)
-  j=min(j,N-1)
-  return u[i][j]
-
 def bilinear_interp_u(p):
   x, y = p
-
+  #clamp
   x=max(x,0)
   x=min(x,N-0.0001)
   y=max(y,0.5)
   y=min(y,N-0.5001)
-
+  #from wiki
   x1 = int(x)
   x2 = x1+1
   y1 = int(y-0.5)+0.5
@@ -55,12 +41,12 @@ def bilinear_interp_u(p):
   return a @ b @ c.T
 def bilinear_interp_v(p):
   x, y = p
-
+  #clamp
   x=max(x,0.5)
   x=min(x,N-0.5001)
   y=max(y,0)
   y=min(y,N-0.0001)
-
+  #from wiki
   x1 = int(x-0.5)+0.5
   x2 = x1+1
   y1 = int(y)
@@ -76,22 +62,28 @@ def bilinear_interp_v(p):
   c = np.array([y2-y, y-y1])
   return a @ b @ c.T
 
+def RK2(curr):
+  k1 = np.array([bilinear_interp_u(curr),
+                 bilinear_interp_v(curr)])
+  k2 = np.array([bilinear_interp_u(curr - 0.5*dt*k1),
+                 bilinear_interp_v(curr - 0.5*dt*k1)])
+  return - dt * k2
+
 def advect():
   global u, v
-  u2 = np.zeros((N+1, N))
+  u2 = np.zeros((N+1,N))
   for i in range(N+1):
     for j in range(N):
       curr = np.array([i, j+0.5])
-      vel = np.array([u[i][j], (vS(i-1,j-1)+vS(i+1,j-1)+vS(i-1,j+1)+vS(i+1,j+1))/4])
-      prev = curr - dt*vel
-      u2[i][j] = bilinear_interp_u(prev)
-  v2 = np.zeros((N, N+1))
+      prev = curr + RK2(curr)
+      u2[i][j]=bilinear_interp_u(prev)
+      
+  v2 = np.zeros((N,N+1))
   for i in range(N):
     for j in range(N+1):
       curr = np.array([i+0.5, j])
-      vel = np.array([(uS(i-1,j-1)+uS(i+1,j-1)+uS(i-1,j+1)+uS(i+1,j+1))/4, v[i][j]])
-      prev = curr - dt*vel
-      v2[i][j] = bilinear_interp_v(prev)
+      prev = curr + RK2(curr)
+      v2[i][j]=bilinear_interp_v(prev)
   u = u2
   v = v2
 
@@ -112,6 +104,5 @@ def plot(i=0):
 while 1:
   plot()
   advect()
-  #input()
 
 plt.show()
