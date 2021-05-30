@@ -82,14 +82,14 @@ def advect():
   for i in range(N+1):
     for j in range(N):
       curr = np.array([i, j+0.5])
-      vel = np.array([uS(i,j), (vS(i-1,j-1)+vS(i+1,j-1)+vS(i-1,j+1)+vS(i+1,j+1))/4])
+      vel = np.array([u[i][j], (vS(i-1,j-1)+vS(i+1,j-1)+vS(i-1,j+1)+vS(i+1,j+1))/4])
       prev = curr - dt*vel
       u2[i][j] = bilinear_interp_u(prev)
   v2 = np.zeros((N, N+1))
   for i in range(N):
     for j in range(N+1):
       curr = np.array([i+0.5, j])
-      vel = np.array([(uS(i-1,j-1)+uS(i+1,j-1)+uS(i-1,j+1)+uS(i+1,j+1))/4, vS(i,j)])
+      vel = np.array([(uS(i-1,j-1)+uS(i+1,j-1)+uS(i-1,j+1)+uS(i+1,j+1))/4, v[i][j]])
       prev = curr - dt*vel
       v2[i][j] = bilinear_interp_v(prev)
   u = u2
