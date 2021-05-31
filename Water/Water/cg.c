@@ -95,7 +95,8 @@ float *cg(void){
   vecMulAdd(r, -1.0f, Ax, b);
   memcpy(p, r, n * sizeof(float));
   float rsold = dot(r, r);
-  for (int i=0; i<n; i++){
+  int i;
+  for (i=0; i<n; i++){
     AMul(p, Ap);
     float alpha;
     if (rsold == 0.0f)
@@ -111,6 +112,7 @@ float *cg(void){
     vecMulAdd(p, rsnew / rsold, p, r);
     rsold = rsnew;
   }
+  //printf("Iterations: %d\n",i);
   return x;
 }
 
