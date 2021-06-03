@@ -15,15 +15,6 @@ for i in range(N):
     if surfaceF(i+0.5) > j+0.5:
       phi[i][j]*=-1
 
-start=time.time()
-phi3 = np.zeros((N, N))
-for i in range(N):
-  for j in range(N):
-    p=(i+0.5, j+0.5)
-    v=np.sqrt(min([(p[0]-surface[k][0])**2 + (p[1]-surface[k][1])**2 for k in range(len(surface))]))
-    phi3[i][j]=v
-end=time.time()
-print('simple',end-start)
 
 start=time.time()
 phi2 = np.zeros((N, N))
@@ -56,6 +47,16 @@ for i in range(N):
       closest_point[i][j]=candidates[np.argmin(distances)]
       surface.append(closest_point[i][j])
       phi2[i][j]=min(distances)
+end1=time.time()
+
+phi3 = np.zeros((N, N))
+for i in range(N):
+  for j in range(N):
+    p=(i+0.5, j+0.5)
+    v=np.sqrt(min([(p[0]-surface[k][0])**2 + (p[1]-surface[k][1])**2 for k in range(len(surface))]))
+    phi3[i][j]=v
+end2=time.time()
+print('simple',end2-start)
 
 def loop_for(i,j):
   if known[i][j]:
@@ -109,8 +110,8 @@ for _ in range(2):
   for i in range(N):
     for j in range(N-1,-1,-1):
       loop_for(i,j)
-end=time.time()
-print('time',end-start)
+end3=time.time()
+print('fast',end1-start+end3-end2)
 
 diffs=[]
 for i in range(N):
