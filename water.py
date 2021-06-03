@@ -2,12 +2,9 @@ import scipy.sparse.linalg
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-# TODO:
-# INTERPOLATE SURFACE VELOCITIES!!!
-# INTERPOLATE BOUNDARY VELOCITIES!!!
-# IF PARTICLE GOES INTO BOUNDARY!!!
-# SMALLER TIMESTEP???
+# Zeroing boundary velocities
+# Metaballs to render
+# Smaller timestep?
 
 N = 16
 
@@ -25,27 +22,22 @@ for i in range(N):
 for j in range(1,N-1):
   for i in range(1,N//2):
     types[i][j]=FLUID
-    #u[i][j]=np.random.rand()*2.0-1.0
-    #u[i+1][j]=np.random.rand()*2.0-1.0
-    #v[i][j]=np.random.rand()*2.0-1.0
-    #v[i][j+1]=np.random.rand()*2.0-1.0
 particles = []
 for i in range(N):
   for j in range(N):
     if types[i][j]==FLUID:
-      particles.append(np.array([i+0.25,j+0.25]))
-      particles.append(np.array([i+0.25,j+0.75]))
-      particles.append(np.array([i+0.75,j+0.25]))
-      particles.append(np.array([i+0.75,j+0.75]))
+      r = lambda: np.random.rand(2,)*0.5-0.25
+      particles.append(np.array([i+0.25,j+0.25])+r())
+      particles.append(np.array([i+0.25,j+0.75])+r())
+      particles.append(np.array([i+0.75,j+0.25])+r())
+      particles.append(np.array([i+0.75,j+0.75])+r())
 
 def bilinear_interp_u(p):
   x, y = p
-
   x=max(x,0)
   x=min(x,N-0.0001)
   y=max(y,0.5)
   y=min(y,N-0.5001)
-
   x1 = int(x)
   x2 = x1+1
   y1 = int(y-0.5)+0.5
@@ -62,12 +54,10 @@ def bilinear_interp_u(p):
   return a @ b @ c.T
 def bilinear_interp_v(p):
   x, y = p
-
   x=max(x,0.5)
   x=min(x,N-0.5001)
   y=max(y,0)
   y=min(y,N-0.0001)
-
   x1 = int(x-0.5)+0.5
   x2 = x1+1
   y1 = int(y)
@@ -96,6 +86,75 @@ def backwards_RK2(curr):
                  bilinear_interp_v(curr - 0.5*dt*k1)])
   return curr - dt * k2
 
+def extrapolate():
+  maxint = N*N
+  d=np.zeros((N+1,N),dtype=int)+maxint
+  W=[]
+  for i in range(N-1):
+    for j in range(N):
+      if types[i][j]==FLUID or types[i+1][j]==FLUID:
+        d[i+1][j]=0
+  for i in range(N+1):
+    for j in range(N):
+      if d[i][j]==0:
+        continue
+      for i2,j2 in [(i-1,j),(i,j-1),(i+1,j),(i,j+1)]:
+        if i2 in range(N+1) and j2 in range(N):
+          if d[i2][j2]==0:
+            d[i][j]=1
+            W.append((i,j))
+            break
+  t=0
+  while t<len(W):
+    i,j=W[t]
+    new = 0
+    count = 0
+    for i2,j2 in [(i-1,j),(i,j-1),(i+1,j),(i,j+1)]:
+      if i2 in range(N+1) and j2 in range(N):
+        if d[i2][j2]<d[i][j]:
+          new += u[i2][j2]
+          count+=1
+    u[i][j]=new/count
+    for i2,j2 in [(i-1,j),(i,j-1),(i+1,j),(i,j+1)]:
+      if i2 in range(N+1) and j2 in range(N):
+        if d[i2][j2]==maxint:
+          d[i2][j2]=d[i][j]+1
+          W.append((i2,j2))
+    t+=1
+  d=np.zeros((N,N+1),dtype=int)+maxint
+  W=[]
+  for i in range(N):
+    for j in range(N-1):
+      if types[i][j]==FLUID or types[i][j+1]==FLUID:
+        d[i][j+1]=0
+  for i in range(N):
+    for j in range(N+1):
+      if d[i][j]==0:
+        continue
+      for i2,j2 in [(i-1,j),(i,j-1),(i+1,j),(i,j+1)]:
+        if i2 in range(N) and j2 in range(N+1):
+          if d[i2][j2]==0:
+            d[i][j]=1
+            W.append((i,j))
+            break
+  t=0
+  while t<len(W):
+    i,j=W[t]
+    new = 0
+    count = 0
+    for i2,j2 in [(i-1,j),(i,j-1),(i+1,j),(i,j+1)]:
+      if i2 in range(N) and j2 in range(N+1):
+        if d[i2][j2]<d[i][j]:
+          new += v[i2][j2]
+          count+=1
+    v[i][j]=new/count
+    for i2,j2 in [(i-1,j),(i,j-1),(i+1,j),(i,j+1)]:
+      if i2 in range(N) and j2 in range(N+1):
+        if d[i2][j2]==maxint:
+          d[i2][j2]=d[i][j]+1
+          W.append((i2,j2))
+    t+=1
+
 def advect():
   global u, v
   u2 = np.zeros((N+1,N))
@@ -104,7 +163,6 @@ def advect():
       curr = np.array([i, j+0.5])
       prev = backwards_RK2(curr)
       u2[i][j]=bilinear_interp_u(prev)
-      
   v2 = np.zeros((N,N+1))
   for i in range(N):
     for j in range(N+1):
@@ -230,6 +288,7 @@ project()
 while 1:
   advect()
   project()
+  extrapolate()
   move_particles()
   for i in range(N):
     for j in range(N-1):
