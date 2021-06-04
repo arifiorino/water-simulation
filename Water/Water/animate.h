@@ -8,11 +8,11 @@
 #ifndef animate_h
 #define animate_h
 
-int N = 64;
-int n_particles;
-float *particles;
+int n_triangles;
+float *triangles;
 
 void initAnimation(void);
 void animate(void);
+void marching_squares(void);
 
 #endif /* animate_h */

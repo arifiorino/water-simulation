@@ -8,21 +8,17 @@
 #include <metal_stdlib>
 using namespace metal;
 
-struct VertexOut {
-    float4 color;
+struct Vertex {
     float4 pos [[position]];
-    float pointsize[[point_size]];
 };
 
-vertex VertexOut vertexShader(const device float *vertexArray [[buffer(0)]], unsigned int vid [[vertex_id]]){
+vertex Vertex vertexShader(const device float *vertexArray [[buffer(0)]], unsigned int vid [[vertex_id]]){
   int N = 64;
-  VertexOut out;
-  out.color = float4(0,0,1,1);
+  Vertex out;
   out.pos = float4(vertexArray[vid*2]/(N/2.0f)-1.0f, vertexArray[vid*2+1]/(N/2.0f)-1.0f, 0, 1);
-  out.pointsize = 5.0;
   return out;
 }
 
-fragment float4 fragmentShader(VertexOut interpolated [[stage_in]]){
-  return interpolated.color;
+fragment float4 fragmentShader(Vertex interpolated [[stage_in]]){
+  return float4(0,0,1,1);
 }

@@ -14,12 +14,13 @@ class ViewController: NSViewController, MTKViewDelegate {
   var commandQueue: MTLCommandQueue!
   var pipelineState: MTLRenderPipelineState!
   var vertexBuffer: MTLBuffer!
+  var device: MTLDevice!
     
   override func viewDidLoad() {
     super.viewDidLoad()
 
     let mtkView = self.view as! MTKView
-    let device = MTLCreateSystemDefaultDevice()!
+    device = MTLCreateSystemDefaultDevice()!
     mtkView.device = device
     mtkView.delegate = self
     commandQueue = device.makeCommandQueue()!
@@ -34,19 +35,21 @@ class ViewController: NSViewController, MTKViewDelegate {
       print("Error: \(error)")
     }
     initAnimation()
-    vertexBuffer = device.makeBuffer(length: Int(n_particles) * 2 * 4, options: [])!
+    
   }
   
   func draw(in view: MTKView) {
-    vertexBuffer.contents().copyMemory(from: particles, byteCount: Int(n_particles) * 2 * 4)
     animate()
+    marching_squares()
+    vertexBuffer = device.makeBuffer(length: Int(n_triangles) * 3 * 2 * 4, options: [])!
+    vertexBuffer.contents().copyMemory(from: triangles, byteCount: Int(n_triangles) * 3 * 2 * 4)
     let commandBuffer = commandQueue.makeCommandBuffer()!
     let renderPassDescriptor = view.currentRenderPassDescriptor!
     renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1, 1, 1, 1)
     let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
     renderEncoder.setRenderPipelineState(pipelineState)
     renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-    renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: Int(n_particles))
+    renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: Int(n_triangles)*3)
     renderEncoder.endEncoding()
     commandBuffer.present(view.currentDrawable!)
     commandBuffer.commit()

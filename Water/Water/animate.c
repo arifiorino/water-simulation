@@ -12,8 +12,11 @@
 #define SOLID 0
 #define FLUID 1
 #define EMPTY 2
+int N = 64;
+int n_particles;
 float **u, **v, **u2, **v2;
 char **types;
+float *particles;
 float dt = 0.2;
 float gy = -0.4f;
 
@@ -278,4 +281,97 @@ void animate(void){
     for (int j=0; j<N-1; j++)
       if (types[i][j]==FLUID || types[i][j+1]==FLUID)
         v[i][j+1] += dt * gy;
+}
+
+char water(float x, float y){
+  //float F = 0;
+  for (int i=0; i<n_particles; i++){
+    float s = fabs(particles[i*2]-x) + fabs(particles[i*2+1]-y);
+    if (s < 1) return 1;
+      //F += (1-s*s)*(1-s*s)*(1-s*s);
+  }
+  //if (F<2) return 1;
+  return 0;
+}
+
+void marching_squares(void){
+  float gridSize = 0.5f;
+  n_triangles = 0;
+  for (float x=0; x<N-gridSize; x+=gridSize){
+    for (float y=0; y<N-gridSize; y+=gridSize){
+      char TL = water(x,y+gridSize);
+      char TR = water(x+gridSize,y+gridSize);
+      char BR = water(x+gridSize,y);
+      char BL = water(x,y);
+      if (TL + TR + BR + BL == 1)
+        n_triangles++;
+      else if (TL + TR + BR + BL == 2)
+        n_triangles+=2;
+      else if (TL + TR + BR + BL == 3)
+        n_triangles+=3;
+      else if (TL + TR + BR + BL == 4)
+        n_triangles+=2;
+    }
+  }
+  free(triangles);
+  triangles = malloc(n_triangles * 3 * 2 * 4);
+  int i=0;
+  for (float x=0; x<N-gridSize; x+=gridSize){
+    for (float y=0; y<N-gridSize; y+=gridSize){
+      bool TL = water(x,y+gridSize)==1;
+      bool TR = water(x+gridSize,y+gridSize)==1;
+      bool BR = water(x+gridSize,y)==1;
+      bool BL = water(x,y)==1;
+      float x2 = x+gridSize;
+      float y2 = y+gridSize;
+      float xh = x+gridSize/2;
+      float yh = y+gridSize/2;
+      if       ( TL && TR && BR && BL){
+        triangles[i]=x; triangles[i+1]=y2; triangles[i+2]=x2; triangles[i+3]=y2; triangles[i+4]=x; triangles[i+5]=y;
+        triangles[i+6]=x; triangles[i+7]=y; triangles[i+8]=x2; triangles[i+9]=y2; triangles[i+10]=x2; triangles[i+11]=y; i+=12;
+      }else if ( TL &&!TR &&!BR &&!BL){
+        triangles[i]=x; triangles[i+1]=y2; triangles[i+2]=xh; triangles[i+3]=y2; triangles[i+4]=x; triangles[i+5]=yh; i+=6;
+      }else if (!TL && TR &&!BR &&!BL){
+        triangles[i]=x2; triangles[i+1]=y2; triangles[i+2]=x2; triangles[i+3]=yh; triangles[i+4]=xh; triangles[i+5]=y2; i+=6;
+      }else if (!TL &&!TR && BR &&!BL){
+        triangles[i]=x2; triangles[i+1]=y; triangles[i+2]=xh; triangles[i+3]=y; triangles[i+4]=x2; triangles[i+5]=yh; i+=6;
+      }else if (!TL &&!TR &&!BR && BL){
+        triangles[i]=x; triangles[i+1]=y; triangles[i+2]=x; triangles[i+3]=yh; triangles[i+4]=xh; triangles[i+5]=y; i+=6;
+      }else if ( TL && TR &&!BR &&!BL){
+        triangles[i]=x; triangles[i+1]=y2; triangles[i+2]=x2; triangles[i+3]=y2; triangles[i+4]=x; triangles[i+5]=yh;
+        triangles[i+6]=x; triangles[i+7]=yh; triangles[i+8]=x2; triangles[i+9]=y2; triangles[i+10]=x2; triangles[i+11]=yh; i+=12;
+      }else if ( TL &&!TR && BR &&!BL){
+        triangles[i]=x; triangles[i+1]=y2; triangles[i+2]=xh; triangles[i+3]=y2; triangles[i+4]=x; triangles[i+5]=yh;
+        triangles[i+6]=x2; triangles[i+7]=y; triangles[i+8]=xh; triangles[i+9]=y; triangles[i+10]=x2; triangles[i+11]=yh; i+=12;
+      }else if ( TL &&!TR &&!BR && BL){
+        triangles[i]=x; triangles[i+1]=y2; triangles[i+2]=xh; triangles[i+3]=y2; triangles[i+4]=x; triangles[i+5]=y;
+        triangles[i+6]=x; triangles[i+7]=y; triangles[i+8]=xh; triangles[i+9]=y2; triangles[i+10]=xh; triangles[i+11]=y; i+=12;
+      }else if (!TL && TR && BR &&!BL){
+        triangles[i]=xh; triangles[i+1]=y2; triangles[i+2]=x2; triangles[i+3]=y2; triangles[i+4]=x2; triangles[i+5]=y;
+        triangles[i+6]=xh; triangles[i+7]=y2; triangles[i+8]=x2; triangles[i+9]=y; triangles[i+10]=xh; triangles[i+11]=y; i+=12;
+      }else if (!TL && TR &&!BR && BL){
+        triangles[i]=xh; triangles[i+1]=y2; triangles[i+2]=x2; triangles[i+3]=y2; triangles[i+4]=x2; triangles[i+5]=yh;
+        triangles[i+6]=x; triangles[i+7]=yh; triangles[i+8]=xh; triangles[i+9]=y; triangles[i+10]=x; triangles[i+11]=y; i+=12;
+      }else if (!TL &&!TR && BR && BL){
+        triangles[i]=x; triangles[i+1]=y; triangles[i+2]=x; triangles[i+3]=yh; triangles[i+4]=x2; triangles[i+5]=yh;
+        triangles[i+6]=x; triangles[i+7]=y; triangles[i+8]=x2; triangles[i+9]=yh; triangles[i+10]=x2; triangles[i+11]=y; i+=12;
+      }else if (!TL && TR && BR && BL){
+        triangles[i]=x; triangles[i+1]=y; triangles[i+2]=x; triangles[i+3]=yh; triangles[i+4]=x2; triangles[i+5]=y;
+        triangles[i+6]=x; triangles[i+7]=yh; triangles[i+8]=xh; triangles[i+9]=y2; triangles[i+10]=x2; triangles[i+11]=y;
+        triangles[i+12]=xh; triangles[i+13]=y2; triangles[i+14]=x2; triangles[i+15]=y2; triangles[i+16]=x2; triangles[i+17]=y; i+=18;
+      }else if ( TL &&!TR && BR && BL){
+        triangles[i]=x; triangles[i+1]=y; triangles[i+2]=x; triangles[i+3]=y2; triangles[i+4]=xh; triangles[i+5]=y2;
+        triangles[i+6]=x; triangles[i+7]=y; triangles[i+8]=xh; triangles[i+9]=y2; triangles[i+10]=x2; triangles[i+11]=yh;
+        triangles[i+12]=x; triangles[i+13]=y; triangles[i+14]=x2; triangles[i+15]=yh; triangles[i+16]=x2; triangles[i+17]=y; i+=18;
+      }else if ( TL && TR &&!BR && BL){
+        triangles[i]=x; triangles[i+1]=y; triangles[i+2]=x; triangles[i+3]=y2; triangles[i+4]=xh; triangles[i+5]=y;
+        triangles[i+6]=x; triangles[i+7]=y2; triangles[i+8]=x2; triangles[i+9]=yh; triangles[i+10]=xh; triangles[i+11]=y;
+        triangles[i+12]=x; triangles[i+13]=y2; triangles[i+14]=x2; triangles[i+15]=y2; triangles[i+16]=x2; triangles[i+17]=yh; i+=18;
+      }else if ( TL && TR && BR &&!BL){
+        triangles[i]=x; triangles[i+1]=y2; triangles[i+2]=x2; triangles[i+3]=y2; triangles[i+4]=x; triangles[i+5]=yh;
+        triangles[i+6]=x; triangles[i+7]=yh; triangles[i+8]=x2; triangles[i+9]=y2; triangles[i+10]=xh; triangles[i+11]=y;
+        triangles[i+12]=xh; triangles[i+13]=y; triangles[i+14]=x2; triangles[i+15]=y2; triangles[i+16]=x2; triangles[i+17]=y; i+=18;
+      }
+    }
+  }
 }
