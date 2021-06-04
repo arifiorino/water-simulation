@@ -16,9 +16,15 @@ int N = 64;
 int n_particles;
 float **u, **v, **u2, **v2;
 char **types;
-float *particles;
 float dt = 0.2;
 float gy = -0.4f;
+
+typedef struct particle{
+  float x,y;
+  struct particle *next;
+} particle_t;
+particle_t *particles;
+particle_t ***particles_hash;
 
 void initAnimation(void){
   u = (float**)malloc2D(N+1, N, sizeof(float));
@@ -48,18 +54,19 @@ void initAnimation(void){
       n_particles+=4;
     }
   }
-  particles = (float*)malloc(n_particles*2*sizeof(float));
+  particles = (particle_t*)malloc(n_particles*sizeof(particle_t));
   int c = 0;
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
       if (types[i][j]==FLUID){
-        particles[c] = i+0.25; particles[c+1] = j+0.25; c+=2;
-        particles[c] = i+0.25; particles[c+1] = j+0.75; c+=2;
-        particles[c] = i+0.75; particles[c+1] = j+0.25; c+=2;
-        particles[c] = i+0.75; particles[c+1] = j+0.75; c+=2;
+        particles[c].x= i+0.25; particles[c].y= j+0.25; c++;
+        particles[c].x= i+0.25; particles[c].y= j+0.75; c++;
+        particles[c].x= i+0.75; particles[c].y= j+0.25; c++;
+        particles[c].x= i+0.75; particles[c].y= j+0.75; c++;
       }
     }
   }
+  particles_hash = (particle_t***)malloc2D(N, N, sizeof(particle_t*));
 }
 float bilinear_interp_u(float x, float y){
   x=fmaxf(x,0);
@@ -266,10 +273,10 @@ void move_particles(void){
       if (types[i][j]==FLUID)
         types[i][j]=EMPTY;
   for (int idx=0; idx<n_particles; idx++){
-    RK2(particles[idx*2],particles[idx*2+1],particles+idx*2,particles+idx*2+1);
-    float i=particles[idx*2];
-    float j=particles[idx*2+1];
-    types[(int)i][(int)j]=FLUID;
+    RK2(particles[idx].x,particles[idx].y,&(particles[idx].x),&(particles[idx].y));
+    int i=particles[idx].x;
+    int j=particles[idx].y;
+    types[i][j]=FLUID;
   }
 }
 
@@ -283,19 +290,48 @@ void animate(void){
         v[i][j+1] += dt * gy;
 }
 
+void hash_particles(void){
+  for (int i=0; i<N; i++)
+    for (int j=0; j<N; j++)
+      particles_hash[i][j]=NULL;
+  for (int idx=0; idx<n_particles; idx++){
+    int i=particles[idx].x;
+    int j=particles[idx].y;
+    particles[idx].next=NULL;
+    if (particles_hash[i][j] == NULL){
+      particles_hash[i][j]=&(particles[idx]);
+      continue;
+    }
+    particle_t *curr = particles_hash[i][j];
+    while (curr->next!=NULL) curr=curr->next;
+    curr->next = particles+idx;
+  }
+}
+
 char water(float x, float y){
   //float F = 0;
-  for (int i=0; i<n_particles; i++){
-    float s = fabs(particles[i*2]-x) + fabs(particles[i*2+1]-y);
-    if (s < 1) return 1;
+  for (int di=-1; di<2; di++){
+    for (int dj=-1; dj<2; dj++){
+      int i=x;
+      int j=y;
+      if (i+di>=0 && i+di<N && j+dj>=0 && j+dj<N){
+        particle_t *curr = particles_hash[i+di][j+dj];
+        while (curr != NULL){
+          float s = (curr->x-x)*(curr->x-x) + (curr->y-y)*(curr->y-y);
+          if (s < 1) return 1;
+          curr = curr->next;
+        }
+      }
       //F += (1-s*s)*(1-s*s)*(1-s*s);
+    }
   }
   //if (F<2) return 1;
   return 0;
 }
 
 void marching_squares(void){
-  float gridSize = 0.5f;
+  hash_particles();
+  float gridSize = 0.1f;
   n_triangles = 0;
   for (float x=0; x<N-gridSize; x+=gridSize){
     for (float y=0; y<N-gridSize; y+=gridSize){
