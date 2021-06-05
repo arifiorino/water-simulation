@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		D4258E452661CBC00056A2B5 /* cg.c in Sources */ = {isa = PBXBuildFile; fileRef = D4258E442661CBC00056A2B5 /* cg.c */; };
 		D4258E482661CDD70056A2B5 /* utils.c in Sources */ = {isa = PBXBuildFile; fileRef = D4258E472661CDD70056A2B5 /* utils.c */; };
+		D4F9A39A266BC98E00CA9DB0 /* render.c in Sources */ = {isa = PBXBuildFile; fileRef = D4F9A399266BC98E00CA9DB0 /* render.c */; };
 		D4FA7DCC26617DB600A2342B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FA7DCB26617DB600A2342B /* AppDelegate.swift */; };
 		D4FA7DCE26617DB600A2342B /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FA7DCD26617DB600A2342B /* ViewController.swift */; };
 		D4FA7DD026617DB700A2342B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D4FA7DCF26617DB700A2342B /* Assets.xcassets */; };
@@ -22,6 +23,8 @@
 		D4258E442661CBC00056A2B5 /* cg.c */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.c.c; path = cg.c; sourceTree = "<group>"; tabWidth = 2; wrapsLines = 0; };
 		D4258E462661CDD70056A2B5 /* utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = utils.h; sourceTree = "<group>"; };
 		D4258E472661CDD70056A2B5 /* utils.c */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.c.c; path = utils.c; sourceTree = "<group>"; tabWidth = 2; wrapsLines = 0; };
+		D4F9A398266BC98E00CA9DB0 /* render.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = render.h; sourceTree = "<group>"; };
+		D4F9A399266BC98E00CA9DB0 /* render.c */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.c.c; path = render.c; sourceTree = "<group>"; tabWidth = 2; wrapsLines = 0; };
 		D4FA7DC826617DB600A2342B /* Water.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Water.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D4FA7DCB26617DB600A2342B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		D4FA7DCD26617DB600A2342B /* ViewController.swift */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; tabWidth = 2; wrapsLines = 0; };
@@ -72,6 +75,8 @@
 				D4FA7DD126617DB700A2342B /* Main.storyboard */,
 				D4FA7DDC26617E6300A2342B /* animate.h */,
 				D4FA7DDD26617E6300A2342B /* animate.c */,
+				D4F9A398266BC98E00CA9DB0 /* render.h */,
+				D4F9A399266BC98E00CA9DB0 /* render.c */,
 				D4258E432661CBC00056A2B5 /* cg.h */,
 				D4258E442661CBC00056A2B5 /* cg.c */,
 				D4258E462661CDD70056A2B5 /* utils.h */,
@@ -153,6 +158,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D4F9A39A266BC98E00CA9DB0 /* render.c in Sources */,
 				D4258E452661CBC00056A2B5 /* cg.c in Sources */,
 				D4FA7DCE26617DB600A2342B /* ViewController.swift in Sources */,
 				D4FA7DE026617F6400A2342B /* Render.metal in Sources */,

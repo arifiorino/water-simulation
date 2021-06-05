@@ -8,11 +8,17 @@
 #ifndef animate_h
 #define animate_h
 
-int n_triangles;
-float *triangles;
+extern int N;
+extern int n_particles;
+
+typedef struct particle{
+  float x,y;
+  struct particle *next;
+} particle_t;
+extern particle_t *particles;
+extern particle_t ***particles_hash;
 
 void initAnimation(void);
 void animate(void);
-void marching_squares(void);
 
 #endif /* animate_h */

@@ -3,3 +3,4 @@
 //
 
 #include "animate.h"
+#include "render.h"
