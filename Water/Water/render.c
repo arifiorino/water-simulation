@@ -49,7 +49,7 @@ char water(float x, float y){
 
 void marching_squares(void){
   hash_particles();
-  float gridSize = 0.1;
+  float gridSize = 0.4;
   n_triangles = 0;
   for (float x=0; x<N-gridSize; x+=gridSize){
     for (float y=0; y<N-gridSize; y+=gridSize){
@@ -132,5 +132,8 @@ void marching_squares(void){
 
 void render(void){
   hash_particles();
+  double t1 = timestamp();
   marching_squares();
+  double t2 = timestamp();
+  printf("March: %f\n",t2-t1);
 }

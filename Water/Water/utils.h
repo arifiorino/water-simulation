@@ -14,7 +14,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
-#include <sys/time.h>
+#include <time.h>
 #include <limits.h>
 void **malloc2D(int w, int h, int s);
 void free2D(void **p, int w);

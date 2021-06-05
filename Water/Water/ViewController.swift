@@ -39,12 +39,8 @@ class ViewController: NSViewController, MTKViewDelegate {
   }
   
   func draw(in view: MTKView) {
-    let t1 = NSDate().timeIntervalSince1970
     animate()
-    let t2 = NSDate().timeIntervalSince1970
     render()
-    let t3 = NSDate().timeIntervalSince1970
-    print(t3-t2,t2-t1);
     vertexBuffer = device.makeBuffer(length: Int(n_triangles) * 3 * 2 * 4, options: [])!
     vertexBuffer.contents().copyMemory(from: triangles, byteCount: Int(n_triangles) * 3 * 2 * 4)
     let commandBuffer = commandQueue.makeCommandBuffer()!

@@ -30,10 +30,9 @@ double rand2(void){
 }
 
 double timestamp(void){
-  struct timeval te;
-  gettimeofday(&te, NULL);
-  long millis = te.tv_sec;// * 1000) + (te.tv_usec / 1000);
-  return millis;
+  struct timespec spec;
+  clock_gettime(CLOCK_REALTIME, &spec);
+  return spec.tv_sec + spec.tv_nsec / 1e9;
 }
 
 void print2D(float **matrix, int w, int h){

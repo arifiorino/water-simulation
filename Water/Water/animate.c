@@ -73,7 +73,7 @@ void initAnimation(void){
     types[N-1][i]=SOLID;
     types[i][N-1]=SOLID;
   }
-  config2();
+  config1();
   particles = (particle_t*)malloc(n_particles*sizeof(particle_t));
   int c = 0;
   for (int i=0; i<N; i++){
@@ -412,9 +412,12 @@ void move_particles(void){
 
 void animate(void){
   advect();
+  double t1 = timestamp();
   project();
+  double t2 = timestamp();
   extrapolate();
   move_particles();
+  printf("Project: %f\n",t2-t1);
   for (int i=0; i<N; i++)
     for (int j=0; j<N-1; j++)
       if (types[i][j]==FLUID || types[i][j+1]==FLUID)
