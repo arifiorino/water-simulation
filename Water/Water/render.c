@@ -38,7 +38,7 @@ char water(float x, float y){
         while (curr != NULL){
           float s = (curr->x-x)*(curr->x-x) + (curr->y-y)*(curr->y-y);
           if (s < 1) F += (1-s*s)*(1-s*s)*(1-s*s);
-          if (F>0.3) return 1;
+          if (F>0.8) return 1;
           curr = curr->next;
         }
       }
@@ -49,7 +49,7 @@ char water(float x, float y){
 
 void marching_squares(void){
   hash_particles();
-  float gridSize = 0.4;
+  float gridSize = 0.2;
   n_triangles = 0;
   for (float x=0; x<N-gridSize; x+=gridSize){
     for (float y=0; y<N-gridSize; y+=gridSize){
@@ -135,5 +135,5 @@ void render(void){
   double t1 = timestamp();
   marching_squares();
   double t2 = timestamp();
-  printf("March: %f\n",t2-t1);
+  printf("March:   %f\n",t2-t1);
 }

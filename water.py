@@ -2,10 +2,6 @@ import scipy.sparse.linalg
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Zeroing boundary velocities
-# Metaballs to render
-# Smaller timestep?
-
 N = 16
 
 u = np.zeros((N+1, N))

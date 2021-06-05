@@ -275,14 +275,6 @@ void extrapolate(void){
   free(W);
 }
 
-int fluid_cell_idx(int i, int j, int *fluid_cells, int n_fluid){
-  for (int idx=0; idx<n_fluid; idx++){
-    if (fluid_cells[idx*2]==i && fluid_cells[idx*2+1]==j){
-      return idx;
-    }
-  }
-  return -1;
-}
 void project(void){
   int n_fluid = 0;
   for (int i=0; i<N; i++){
@@ -293,12 +285,14 @@ void project(void){
     }
   }
   int *fluid_cells = malloc(n_fluid * 2 * sizeof(int));
+  int **fluid_cells_idx = (int **)malloc2D(N, N, sizeof(int));
   int idx=0;
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
       if (types[i][j]==FLUID){
         fluid_cells[idx*2]=i;
         fluid_cells[idx*2+1]=j;
+        fluid_cells_idx[i][j]=idx;
         idx++;
       }
     }
@@ -309,13 +303,13 @@ void project(void){
     int i = fluid_cells[idx*2];
     int j = fluid_cells[idx*2+1];
     if (types[i-1][j]==FLUID)
-      write_A(idx, fluid_cell_idx(i-1,j,fluid_cells,n_fluid), -1);
+      write_A(idx, fluid_cells_idx[i-1][j], -1);
     if (types[i][j-1]==FLUID)
-      write_A(idx, fluid_cell_idx(i,j-1,fluid_cells,n_fluid), -1);
+      write_A(idx, fluid_cells_idx[i][j-1], -1);
     if (types[i+1][j]==FLUID)
-      write_A(idx, fluid_cell_idx(i+1,j,fluid_cells,n_fluid), -1);
+      write_A(idx, fluid_cells_idx[i+1][j], -1);
     if (types[i][j+1]==FLUID)
-      write_A(idx, fluid_cell_idx(i,j+1,fluid_cells,n_fluid), -1);
+      write_A(idx, fluid_cells_idx[i][j+1], -1);
     int non_solid = 0;
     float D=0;
     if (types[i-1][j]!=SOLID){
@@ -345,7 +339,7 @@ void project(void){
       float rightP=0;
       float leftP=0;
       if (types[i+1][j]==FLUID)
-        rightP = x[fluid_cell_idx(i+1,j,fluid_cells,n_fluid)];
+        rightP = x[fluid_cells_idx[i+1][j]];
       if (types[i+1][j]==EMPTY)
         rightP = 0;
       if (types[i+1][j]==SOLID){
@@ -353,7 +347,7 @@ void project(void){
         continue;
       }
       if (types[i][j]==FLUID)
-        leftP = x[fluid_cell_idx(i,j,fluid_cells,n_fluid)];
+        leftP = x[fluid_cells_idx[i][j]];
       if (types[i][j]==EMPTY)
         leftP = 0;
       if (types[i][j]==SOLID){
@@ -370,7 +364,7 @@ void project(void){
       float topP = 0;
       float bottomP = 0;
       if (types[i][j+1]==FLUID)
-        topP = x[fluid_cell_idx(i,j+1,fluid_cells,n_fluid)];
+        topP = x[fluid_cells_idx[i][j+1]];
       if (types[i][j+1]==EMPTY)
         topP = 0;
       if (types[i][j+1]==SOLID){
@@ -378,7 +372,7 @@ void project(void){
         continue;
       }
       if (types[i][j]==FLUID)
-        bottomP = x[fluid_cell_idx(i,j,fluid_cells,n_fluid)];
+        bottomP = x[fluid_cells_idx[i][j]];
       if (types[i][j]==EMPTY)
         bottomP = 0;
       if (types[i][j]==SOLID){
@@ -391,6 +385,7 @@ void project(void){
   swap2D(&u, &u2);
   swap2D(&v, &v2);
   free(fluid_cells);
+  free2D((void **)fluid_cells_idx, N);
   freeCG();
 }
 
