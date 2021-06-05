@@ -264,9 +264,11 @@ def move_particles():
       if types[i][j]!=SOLID:
         types[i][j]=EMPTY
   for idx in range(len(particles)):
-    particles[idx]=RK2(particles[idx])
-    i,j=particles[idx]
-    types[int(i)][int(j)]=FLUID
+    new = RK2(particles[idx])
+    if types[int(new[0])][int(new[1])] != SOLID:
+      particles[idx]=new
+      i,j=particles[idx]
+      types[int(i)][int(j)]=FLUID
 
 def plot(i=0):
   plt.clf()

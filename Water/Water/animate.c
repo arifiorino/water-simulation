@@ -26,6 +26,37 @@ typedef struct particle{
 particle_t *particles;
 particle_t ***particles_hash;
 
+void config1(void){
+  n_particles = 0;
+  for (int i=1; i<N/2; i++){
+    for (int j=1; j<N-1; j++){
+      types[i][j]=FLUID;
+      n_particles+=4;
+    }
+  }
+}
+
+void config2(void){
+  n_particles = 0;
+  for (int i=1; i<N-1; i++){
+    for (int j=1; j<N/8; j++){
+      types[i][j]=FLUID;
+      n_particles+=4;
+    }
+  }
+  int cx=N/2;
+  int cy=3*N/4;
+  int r2=(N/8)*(N/8);
+  for (int i=1; i<N-1; i++){
+    for (int j=1; j<N-1; j++){
+      if ((i-cx)*(i-cx)+(j-cy)*(j-cy)<r2){
+        types[i][j]=FLUID;
+        n_particles+=4;
+      }
+    }
+  }
+}
+
 void initAnimation(void){
   u = (float**)malloc2D(N+1, N, sizeof(float));
   u2 = (float**)malloc2D(N+1, N, sizeof(float));
@@ -47,22 +78,16 @@ void initAnimation(void){
     types[N-1][i]=SOLID;
     types[i][N-1]=SOLID;
   }
-  n_particles = 0;
-  for (int i=1; i<N/2; i++){
-    for (int j=1; j<N-1; j++){
-      types[i][j]=FLUID;
-      n_particles+=4;
-    }
-  }
+  config2();
   particles = (particle_t*)malloc(n_particles*sizeof(particle_t));
   int c = 0;
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
       if (types[i][j]==FLUID){
-        particles[c].x= i+0.25; particles[c].y= j+0.25; c++;
-        particles[c].x= i+0.25; particles[c].y= j+0.75; c++;
-        particles[c].x= i+0.75; particles[c].y= j+0.25; c++;
-        particles[c].x= i+0.75; particles[c].y= j+0.75; c++;
+        particles[c].x= i+0.25+(rand2()*0.5-0.25); particles[c].y= j+0.25+(rand2()*0.5-0.25); c++;
+        particles[c].x= i+0.25+(rand2()*0.5-0.25); particles[c].y= j+0.75+(rand2()*0.5-0.25); c++;
+        particles[c].x= i+0.75+(rand2()*0.5-0.25); particles[c].y= j+0.25+(rand2()*0.5-0.25); c++;
+        particles[c].x= i+0.75+(rand2()*0.5-0.25); particles[c].y= j+0.75+(rand2()*0.5-0.25); c++;
       }
     }
   }
@@ -148,6 +173,113 @@ void advect(void){
   swap2D(&u, &u2);
   swap2D(&v, &v2);
 }
+
+void extrapolate(void){
+  int **d = (int **)malloc2D(N+1,N,sizeof(int));
+  for (int i=0; i<N+1; i++)
+    for (int j=0; j<N; j++)
+      d[i][j]=INT_MAX;
+  int *W = malloc(N*N*2*sizeof(int));
+  int W_len=0;
+  for (int i=0; i<N-1; i++)
+    for (int j=0; j<N; j++)
+      if (types[i][j]==FLUID || types[i+1][j]==FLUID)
+        d[i+1][j]=0;
+  int diff[] = {-1,0,0,-1,1,0,0,1};
+  for (int i=0; i<N+1; i++){
+    for (int j=0; j<N; j++){
+      if (d[i][j]==0) continue;
+      for (int k=0; k<4; k++){
+        int i2=i+diff[k*2];
+        int j2=j+diff[k*2+1];
+        if (i2>=0 && i2<N+1 && j2>=0 && j2<N && d[i2][j2]==0){
+          d[i][j]=1;
+          W[W_len]=i;
+          W[W_len+1]=j;
+          W_len+=2;
+          break;
+        }
+      }
+    }
+  }
+  int t=0;
+  while (t<W_len){
+    int i=W[t];
+    int j=W[t+1];
+    float new = 0;
+    int count = 0;
+    for (int k=0; k<4; k++){
+      int i2=i+diff[k*2];
+      int j2=j+diff[k*2+1];
+      if (i2>=0 && i2<N+1 && j2>=0 && j2<N){
+        if (d[i2][j2]<d[i][j]){
+          new += u[i2][j2];
+          count++;
+        } else if (d[i2][j2]==INT_MAX){
+          d[i2][j2]=d[i][j]+1;
+          W[W_len]=i2;
+          W[W_len+1]=j2;
+          W_len+=2;
+        }
+      }
+    }
+    u[i][j]=new/count;
+    t+=2;
+  }
+  free2D((void **)d, N+1);
+  d = (int **)malloc2D(N,N+1,sizeof(int));
+  for (int i=0; i<N; i++)
+    for (int j=0; j<N+1; j++)
+      d[i][j]=INT_MAX;
+  for (int i=0; i<N; i++)
+    for (int j=0; j<N-1; j++)
+      if (types[i][j]==FLUID || types[i][j+1]==FLUID)
+        d[i][j+1]=0;
+  W_len=0;
+  for (int i=0; i<N; i++){
+    for (int j=0; j<N+1; j++){
+      if (d[i][j]==0) continue;
+      for (int k=0; k<4; k++){
+        int i2=i+diff[k*2];
+        int j2=j+diff[k*2+1];
+        if (i2>=0 && i2<N && j2>=0 && j2<N+1 && d[i2][j2]==0){
+          d[i][j]=1;
+          W[W_len]=i;
+          W[W_len+1]=j;
+          W_len+=2;
+          break;
+        }
+      }
+    }
+  }
+  t=0;
+  while (t<W_len){
+    int i=W[t];
+    int j=W[t+1];
+    float new = 0;
+    int count = 0;
+    for (int k=0; k<4; k++){
+      int i2=i+diff[k*2];
+      int j2=j+diff[k*2+1];
+      if (i2>=0 && i2<N && j2>=0 && j2<N+1){
+        if (d[i2][j2]<d[i][j]){
+          new += v[i2][j2];
+          count++;
+        } else if (d[i2][j2]==INT_MAX){
+          d[i2][j2]=d[i][j]+1;
+          W[W_len]=i2;
+          W[W_len+1]=j2;
+          W_len+=2;
+        }
+      }
+    }
+    v[i][j]=new/count;
+    t+=2;
+  }
+  free2D((void **)d, N);
+  free(W);
+}
+
 int fluid_cell_idx(int i, int j, int *fluid_cells, int n_fluid){
   for (int idx=0; idx<n_fluid; idx++){
     if (fluid_cells[idx*2]==i && fluid_cells[idx*2+1]==j){
@@ -273,16 +405,20 @@ void move_particles(void){
       if (types[i][j]==FLUID)
         types[i][j]=EMPTY;
   for (int idx=0; idx<n_particles; idx++){
-    RK2(particles[idx].x,particles[idx].y,&(particles[idx].x),&(particles[idx].y));
-    int i=particles[idx].x;
-    int j=particles[idx].y;
-    types[i][j]=FLUID;
+    float newX, newY;
+    RK2(particles[idx].x,particles[idx].y,&newX,&newY);
+    if (types[(int)newX][(int)newY]!=SOLID){
+      particles[idx].x=newX;
+      particles[idx].y=newY;
+      types[(int)newX][(int)newY]=FLUID;
+    }
   }
 }
 
 void animate(void){
   advect();
   project();
+  extrapolate();
   move_particles();
   for (int i=0; i<N; i++)
     for (int j=0; j<N-1; j++)
@@ -309,29 +445,28 @@ void hash_particles(void){
 }
 
 char water(float x, float y){
-  //float F = 0;
-  for (int di=-1; di<2; di++){
-    for (int dj=-1; dj<2; dj++){
+  float F = 0;
+  for (int di=-1; di<=1; di++){
+    for (int dj=-1; dj<=1; dj++){
       int i=x;
       int j=y;
       if (i+di>=0 && i+di<N && j+dj>=0 && j+dj<N){
         particle_t *curr = particles_hash[i+di][j+dj];
         while (curr != NULL){
           float s = (curr->x-x)*(curr->x-x) + (curr->y-y)*(curr->y-y);
-          if (s < 1) return 1;
+          if (s < 1) F += (1-s*s)*(1-s*s)*(1-s*s);
+          if (F>0.3) return 1;
           curr = curr->next;
         }
       }
-      //F += (1-s*s)*(1-s*s)*(1-s*s);
     }
   }
-  //if (F<2) return 1;
   return 0;
 }
 
 void marching_squares(void){
   hash_particles();
-  float gridSize = 0.1f;
+  float gridSize = 0.1;
   n_triangles = 0;
   for (float x=0; x<N-gridSize; x+=gridSize){
     for (float y=0; y<N-gridSize; y+=gridSize){

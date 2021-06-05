@@ -25,6 +25,16 @@ void swap2D(float ***a, float ***b){
   *a = *b;
   *b = tmp;
 }
+double rand2(void){
+    return (double)rand() / (double)RAND_MAX ;
+}
+
+double timestamp(void){
+  struct timeval te;
+  gettimeofday(&te, NULL);
+  long millis = te.tv_sec;// * 1000) + (te.tv_usec / 1000);
+  return millis;
+}
 
 void print2D(float **matrix, int w, int h){
   printf("[[");
