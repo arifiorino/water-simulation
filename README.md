@@ -6,3 +6,6 @@ Also the explanations in the Fluid Simulation for Computer Graphics book by Robe
 
 Simulation is first written in python with numpy and matplotlib.  
 Then translated to more efficient C in an Xcode project which uses Metal to render triangles.  
+
+Video:
+https://drive.google.com/file/d/13Tuj4nnW0FiLtjiQaOxbDC0D5yAZRpTk/view?usp=sharing
