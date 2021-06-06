@@ -52,6 +52,31 @@ void config2(void){
   }
 }
 
+void config3(void){
+  n_particles = 0;
+  for (int i=1; i<N-1; i++){
+    for (int j=1; j<N/4; j++){
+      types[i][j]=FLUID;
+      n_particles+=4;
+    }
+  }
+  int cx1=N/4;
+  int cx2=N/2;
+  int cx3=3*N/4;
+  int cy=3*N/4;
+  int r2=(N/8)*(N/8);
+  for (int i=1; i<N-1; i++){
+    for (int j=1; j<N-1; j++){
+      if ((i-cx1)*(i-cx1)+(j-cy)*(j-cy)<r2 ||
+          (i-cx2)*(i-cx2)+(j-cy)*(j-cy)<r2 ||
+          (i-cx3)*(i-cx3)+(j-cy)*(j-cy)<r2){
+        types[i][j]=FLUID;
+        n_particles+=4;
+      }
+    }
+  }
+}
+
 void initAnimation(void){
   u = (float**)malloc2D(N+1, N, sizeof(float));
   u2 = (float**)malloc2D(N+1, N, sizeof(float));
@@ -273,6 +298,7 @@ void extrapolate(void){
   }
   free2D((void **)d, N);
   free(W);
+  
 }
 
 void project(void){
