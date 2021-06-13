@@ -8,17 +8,17 @@
 #ifndef animate_h
 #define animate_h
 
-extern int N;
+#define N 64
 extern int n_particles;
 
 typedef struct particle{
-  float x,y;
+  float x,y,z;
   struct particle *next;
 } particle_t;
 extern particle_t *particles;
-extern particle_t ***particles_hash;
+extern particle_t *particles_hash[N][N][N];
 
-void initAnimation(void);
+void init_animation(void);
 void animate(void);
 
 #endif /* animate_h */

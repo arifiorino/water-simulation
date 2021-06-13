@@ -34,15 +34,15 @@ class ViewController: NSViewController, MTKViewDelegate {
     }catch{
       print("Error: \(error)")
     }
-    initAnimation()
-    
+    init_animation()
+    init_render()
   }
   
   func draw(in view: MTKView) {
     animate()
     render()
-    vertexBuffer = device.makeBuffer(length: Int(n_triangles) * 3 * 2 * 4, options: [])!
-    vertexBuffer.contents().copyMemory(from: triangles, byteCount: Int(n_triangles) * 3 * 2 * 4)
+    vertexBuffer = device.makeBuffer(length: Int(n_triangles) * 3 * 3 * 4, options: [])!
+    vertexBuffer.contents().copyMemory(from: triangles, byteCount: Int(n_triangles) * 3 * 3 * 4)
     let commandBuffer = commandQueue.makeCommandBuffer()!
     let renderPassDescriptor = view.currentRenderPassDescriptor!
     renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1, 1, 1, 1)

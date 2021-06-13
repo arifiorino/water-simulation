@@ -13,6 +13,7 @@
 int n_triangles;
 float *triangles;
 
+void init_render(void);
 void render(void);
 
 #endif /* render_h */
