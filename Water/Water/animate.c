@@ -54,26 +54,14 @@ void config2(void){
 
 void config3(void){
   n_particles = 0;
-  for (int i=1; i<N-1; i++){
-    for (int j=1; j<N/4; j++){
+  for (int i=1; i<N/4; i++){
+    for (int j=3*N/4; j<N-1; j++){
       types[i][j]=FLUID;
       n_particles+=4;
     }
   }
-  int cx1=N/4;
-  int cx2=N/2;
-  int cx3=3*N/4;
-  int cy=3*N/4;
-  int r2=(N/8)*(N/8);
-  for (int i=1; i<N-1; i++){
-    for (int j=1; j<N-1; j++){
-      if ((i-cx1)*(i-cx1)+(j-cy)*(j-cy)<r2 ||
-          (i-cx2)*(i-cx2)+(j-cy)*(j-cy)<r2 ||
-          (i-cx3)*(i-cx3)+(j-cy)*(j-cy)<r2){
-        types[i][j]=FLUID;
-        n_particles+=4;
-      }
-    }
+  for (int i=1; i<3*N/4; i++){
+    types[i][N/2]=SOLID;
   }
 }
 
@@ -98,7 +86,7 @@ void initAnimation(void){
     types[N-1][i]=SOLID;
     types[i][N-1]=SOLID;
   }
-  config1();
+  config2();
   particles = (particle_t*)malloc(n_particles*sizeof(particle_t));
   int c = 0;
   for (int i=0; i<N; i++){
