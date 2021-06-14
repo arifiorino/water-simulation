@@ -13,11 +13,11 @@ struct Vertex {
 };
 
 vertex Vertex vertexShader(const device float *vertexArray [[buffer(0)]], unsigned int vid [[vertex_id]]){
-  int N = 64;
+  int N = 16;
   Vertex out;
   out.pos = float4(vertexArray[vid*3]/(N/2.0f)-1.0f,
                    vertexArray[vid*3+1]/(N/2.0f)-1.0f,
-                   vertexArray[vid*3+2]/(N/2.0f)-1.0f, 1);
+                   vertexArray[vid*3+2]/N, 1);
   return out;
 }
 

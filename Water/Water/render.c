@@ -11,13 +11,14 @@
 
 #define gridSplit 5
 bool points[N*gridSplit+1][N*gridSplit+1][N*gridSplit+1];
+float gridSize = 1.0f/gridSplit;
 
 int triangles_size;
 
 void init_render(void){
   n_triangles = 0;
-  triangles_size = 8;
-  triangles = malloc(triangles_size * sizeof(float));
+  triangles_size = 0;
+  triangles = NULL;
 }
 
 char lookup[16][12] =
@@ -95,12 +96,13 @@ bool water(float x, float y, float z){
 
 void add_triangle(float tri[9]){
   n_triangles++;
-  if (n_triangles*3*3 > triangles_size){
+  if (n_triangles*3*3 >= triangles_size){
     triangles_size *= 2;
-    triangles = realloc(triangles, triangles_size);
+    triangles = realloc(triangles, triangles_size * sizeof(float));
+    printf("%p\n",triangles);
   }
   for (int i=0; i<9; i++)
-    triangles[n_triangles*3*3+i]=tri[i];
+    triangles[(n_triangles-1)*3*3+i]=tri[i] * gridSize;
 }
 
 void tetrahedra(int tetra[12]){
@@ -129,13 +131,16 @@ void tetrahedra(int tetra[12]){
 }
 
 void marching_tetrahedra(void){
-  hash_particles();
-  float gridSize = 1.0f/gridSplit;
   n_triangles = 0;
-  for (int i=0; i<N*gridSplit+1; i++)
-    for (int j=0; j<N*gridSplit+1; j++)
-      for (int k=0; k<N*gridSplit+1; k++)
+  int count = 0;
+  for (int i=0; i<N*gridSplit+1; i++){
+    for (int j=0; j<N*gridSplit+1; j++){
+      for (int k=0; k<N*gridSplit+1; k++){
       points[i][j][k]=water(i*gridSize,j*gridSize,k*gridSize);
+      count++;
+      }
+    }
+  }
   for (int i=0; i<N*gridSplit; i++){
     for (int j=0; j<N*gridSplit; j++){
       for (int k=0; k<N*gridSplit; k++){

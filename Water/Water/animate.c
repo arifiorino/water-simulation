@@ -26,7 +26,7 @@ float gy = -0.4f;
 void config1(void){
   n_particles = 0;
   for (int i=1; i<N/2; i++){
-    for (int j=1; j<N-1; j++){
+    for (int j=1; j<N/2; j++){
       for (int k=N/2; k<N-1; k++){
         types[i][j][k]=FLUID;
         n_particles+=8;
@@ -70,9 +70,9 @@ void init_animation(void){
             float dx=(d&1)*0.5+0.25;
             float dy=((d>>1)&1)*0.5+0.25;
             float dz=((d>>2)&1)*0.5+0.25;
-            particles[c].x= i+dx+(rand2()*0.5-0.25);
-            particles[c].y= j+dy+(rand2()*0.5-0.25);
-            particles[c].z= k+dz+(rand2()*0.5-0.25);
+            particles[c].x= i+dx;//+(rand2()*0.5-0.25);
+            particles[c].y= j+dy;//+(rand2()*0.5-0.25);
+            particles[c].z= k+dz;//+(rand2()*0.5-0.25);
             c++;
           }
         }
@@ -198,7 +198,7 @@ void advect(void){
 }
 
 void extrapolate(void){
-  int *W = malloc(N*N*N*2*sizeof(int));
+  int *W = malloc(N*N*N*3*sizeof(int));
   int W_len;
   int diff[] = {1,0,0,-1,0,0,0,1,0,0,-1,0,0,0,1,0,0,-1};
   //U
@@ -351,7 +351,7 @@ void extrapolate(void){
       int k2=k+diff[c*3+2];
       if (i2>=0 && i2<N && j2>=0 && j2<N && k2>=0 && k2<N+1){
         if (d[i2][j2][k2]<d[i][j][k]){
-          new += v[i2][j2][k2];
+          new += w[i2][j2][k2];
           count++;
         } else if (d[i2][j2][k2]==INT_MAX){
           d[i2][j2][k2]=d[i][j][k]+1;

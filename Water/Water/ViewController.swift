@@ -34,6 +34,7 @@ class ViewController: NSViewController, MTKViewDelegate {
     }catch{
       print("Error: \(error)")
     }
+    
     init_animation()
     init_render()
   }
@@ -53,6 +54,7 @@ class ViewController: NSViewController, MTKViewDelegate {
     renderEncoder.endEncoding()
     commandBuffer.present(view.currentDrawable!)
     commandBuffer.commit()
+    
   }
   
   func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {

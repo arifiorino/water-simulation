@@ -8,7 +8,7 @@
 #ifndef animate_h
 #define animate_h
 
-#define N 64
+#define N 16
 extern int n_particles;
 
 typedef struct particle{
