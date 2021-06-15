@@ -8,6 +8,8 @@
 #ifndef cg_h
 #define cg_h
 
+#include "utils.h"
+
 void mallocCG(int n, float max_row);
 void freeCG(void);
 void initCG(void);

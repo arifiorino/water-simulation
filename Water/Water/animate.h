@@ -8,6 +8,9 @@
 #ifndef animate_h
 #define animate_h
 
+#include "utils.h"
+#include "cg.h"
+
 #define N 64
 extern int n_particles;
 
@@ -17,8 +20,5 @@ typedef struct particle{
 } particle_t;
 extern particle_t *particles;
 extern particle_t *particles_hash[N][N][N];
-
-void init_animation(void);
-void animate(void);
 
 #endif /* animate_h */

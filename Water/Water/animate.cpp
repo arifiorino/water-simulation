@@ -6,8 +6,6 @@
 //
 
 #include "animate.h"
-#include "utils.h"
-#include "cg.h"
 
 #define SOLID 0
 #define FLUID 1
@@ -35,7 +33,7 @@ void config1(void){
   }
 }
 
-void init_animation(void){
+extern "C" void init_animation(void){
   for (int i=0; i<N+1; i++){
     for (int j=0; j<N+1; j++){
       for (int k=0; k<N+1; k++){
@@ -200,7 +198,7 @@ void advect(void){
 }
 
 void extrapolate(void){
-  int *W = malloc(N*N*N*3*sizeof(int));
+  int *W = (int *)malloc(N*N*N*3*sizeof(int));
   int W_len;
   int diff[] = {1,0,0,-1,0,0,0,1,0,0,-1,0,0,0,1,0,0,-1};
   //U
@@ -237,7 +235,7 @@ void extrapolate(void){
     int i=W[t];
     int j=W[t+1];
     int k=W[t+2];
-    float new = 0;
+    float sum = 0;
     int count = 0;
     for (int c=0; c<6; c++){
       int i2=i+diff[c*3];
@@ -245,7 +243,7 @@ void extrapolate(void){
       int k2=j+diff[c*3+2];
       if (i2>=0 && i2<N+1 && j2>=0 && j2<N && k2>=0 && k2<N){
         if (d[i2][j2][k2]<d[i][j][k]){
-          new += u[i2][j2][k2];
+          sum += u[i2][j2][k2];
           count++;
         } else if (d[i2][j2][k2]==INT_MAX){
           d[i2][j2][k2]=d[i][j][k]+1;
@@ -254,7 +252,7 @@ void extrapolate(void){
         }
       }
     }
-    u[i][j][k]=new/count;
+    u[i][j][k]=sum/count;
     t+=3;
   }
   //V
@@ -291,7 +289,7 @@ void extrapolate(void){
     int i=W[t];
     int j=W[t+1];
     int k=W[t+2];
-    float new = 0;
+    float sum = 0;
     int count = 0;
     for (int c=0; c<6; c++){
       int i2=i+diff[c*3];
@@ -299,7 +297,7 @@ void extrapolate(void){
       int k2=k+diff[c*3+2];
       if (i2>=0 && i2<N && j2>=0 && j2<N+1 && k2>=0 && k2<N){
         if (d[i2][j2][k2]<d[i][j][k]){
-          new += v[i2][j2][k2];
+          sum += v[i2][j2][k2];
           count++;
         } else if (d[i2][j2][k2]==INT_MAX){
           d[i2][j2][k2]=d[i][j][k]+1;
@@ -308,7 +306,7 @@ void extrapolate(void){
         }
       }
     }
-    v[i][j][k]=new/count;
+    v[i][j][k]=sum/count;
     t+=3;
   }
   //W
@@ -345,7 +343,7 @@ void extrapolate(void){
     int i=W[t];
     int j=W[t+1];
     int k=W[t+2];
-    float new = 0;
+    float sum = 0;
     int count = 0;
     for (int c=0; c<6; c++){
       int i2=i+diff[c*3];
@@ -353,7 +351,7 @@ void extrapolate(void){
       int k2=k+diff[c*3+2];
       if (i2>=0 && i2<N && j2>=0 && j2<N && k2>=0 && k2<N+1){
         if (d[i2][j2][k2]<d[i][j][k]){
-          new += w[i2][j2][k2];
+          sum += w[i2][j2][k2];
           count++;
         } else if (d[i2][j2][k2]==INT_MAX){
           d[i2][j2][k2]=d[i][j][k]+1;
@@ -364,7 +362,7 @@ void extrapolate(void){
         }
       }
     }
-    w[i][j][k]=new/count;
+    w[i][j][k]=sum/count;
     t+=3;
   }
   free(W);
@@ -381,7 +379,7 @@ void project(void){
       }
     }
   }
-  int *fluid_cells = malloc(n_fluid * 3 * sizeof(int));
+  int *fluid_cells = (int *)malloc(n_fluid * 3 * sizeof(int));
   int idx=0;
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
@@ -547,7 +545,7 @@ void move_particles(void){
   }
 }
 
-void animate(void){
+extern "C" void animate(void){
   advect();
   double t1 = timestamp();
   project();

@@ -6,7 +6,6 @@
 //
 
 #include "cg.h"
-#include "utils.h"
 float **A;
 int **A_i;
 int max_row;

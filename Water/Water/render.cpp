@@ -6,12 +6,16 @@
 //
 
 #include "render.h"
-#include "animate.h"
-#include "utils.h"
 
 #define split 5
 bool level_set[N*split+1][N*split+1][N*split+1];
 int indices_size, vertices_size;
+
+int n_indices;
+int *indices;
+int n_vertices;
+float *vertices;
+float *normals;
 
 typedef struct vertex_ll{
   float x; float y; float z;
@@ -19,7 +23,7 @@ typedef struct vertex_ll{
 } vertex_ll_t;
 bool vertices_hash[N*split+1][N*split+1][N*split+1];
 
-void init_render(void){
+extern "C" void init_render(void){
   n_vertices = 0;
   vertices_size = 0;
   n_indices = 0;
@@ -171,7 +175,7 @@ void marching_tetrahedra(void){
 }
 */
 
-void render(void){
+extern "C" void render(void){
   hash_particles();
   double t1 = timestamp();
   //marching_tetrahedra();
