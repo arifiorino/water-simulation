@@ -10,8 +10,12 @@
 
 #include <stdio.h>
 
-int n_triangles;
-float *triangles;
+int n_indices;
+uint *indices;
+
+int n_vertices;
+float *vertices;
+float *normals;
 
 void init_render(void);
 void render(void);

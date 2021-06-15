@@ -14,6 +14,8 @@ class ViewController: NSViewController, MTKViewDelegate {
   var commandQueue: MTLCommandQueue!
   var pipelineState: MTLRenderPipelineState!
   var vertexBuffer: MTLBuffer!
+  var normalsBuffer: MTLBuffer!
+  var indicesBuffer: MTLBuffer!
   var device: MTLDevice!
     
   override func viewDidLoad() {
@@ -42,15 +44,20 @@ class ViewController: NSViewController, MTKViewDelegate {
   func draw(in view: MTKView) {
     animate()
     render()
-    vertexBuffer = device.makeBuffer(length: Int(n_triangles) * 3 * 3 * 4, options: [])!
-    vertexBuffer.contents().copyMemory(from: triangles, byteCount: Int(n_triangles) * 3 * 3 * 4)
+    vertexBuffer = device.makeBuffer(length: Int(n_vertices) * 3 * 4, options: [])!
+    vertexBuffer.contents().copyMemory(from: vertices, byteCount: Int(n_vertices) * 3 * 4)
+    normalsBuffer = device.makeBuffer(length: Int(n_vertices) * 3 * 4, options: [])!
+    normalsBuffer.contents().copyMemory(from: normals, byteCount: Int(n_vertices) * 3 * 4)
+    indicesBuffer = device.makeBuffer(length: Int(n_indices) * 4, options: [])!
+    indicesBuffer.contents().copyMemory(from: indices, byteCount: Int(n_indices) * 4)
     let commandBuffer = commandQueue.makeCommandBuffer()!
     let renderPassDescriptor = view.currentRenderPassDescriptor!
     renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1, 1, 1, 1)
     let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
     renderEncoder.setRenderPipelineState(pipelineState)
     renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-    renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: Int(n_triangles)*3)
+    renderEncoder.drawIndexedPrimitives(type: .triangle, indexCount: Int(n_indices), indexType: MTLIndexType.uint32,
+                                        indexBuffer: indicesBuffer, indexBufferOffset: 0)
     renderEncoder.endEncoding()
     commandBuffer.present(view.currentDrawable!)
     commandBuffer.commit()

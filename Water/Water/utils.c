@@ -20,11 +20,7 @@ void free2D(void **p, int w){
   }
   free(p);
 }
-void swap2D(float ***a, float ***b){
-  float **tmp = *a;
-  *a = *b;
-  *b = tmp;
-}
+
 double rand2(void){
     return (double)rand() / (double)RAND_MAX ;
 }
@@ -35,24 +31,10 @@ double timestamp(void){
   return spec.tv_sec + spec.tv_nsec / 1e9;
 }
 
-void print2D(float **matrix, int w, int h){
-  printf("[[");
-  for (int i = 0; i < w; ++i){
-    printf(" [");
-    for (int j = 0; j < h; ++j)
-      printf("%f, ", matrix[i][j]);
-    printf("],\n");
-  }
-  printf("]\n");
+void cross_prod(float ax, float ay, float az, float bx, float by, float bz,
+           float *sx, float *sy, float *sz){
+  *sx = ay * bz - az * by;
+  *sy = az * bx - ax * bz;
+  *sz = ax * by - ay * bx;
 }
 
-void print2DInt(int **matrix, int w, int h){
-  printf("[[");
-  for (int i = 0; i < w; ++i){
-    printf(" [");
-    for (int j = 0; j < h; ++j)
-      printf("%d, ", matrix[i][j]);
-    printf("],\n");
-  }
-  printf("]\n");
-}

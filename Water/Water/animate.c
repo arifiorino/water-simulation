@@ -80,6 +80,7 @@ void init_animation(void){
     }
   }
 }
+
 float trilinear_interp(float x, float y, float z, float x0, float y0, float z0,
                        int i, int j, int k, float f[N+1][N+1][N+1]){
   float C000 = f[i][j][k];
@@ -149,6 +150,7 @@ void RK2(float curr_x, float curr_y, float curr_z, float *ret_x, float *ret_y, f
   *ret_y = curr_y + dt * k2_y*back;
   *ret_z = curr_z + dt * k2_z*back;
 }
+
 void advect(void){
   for (int i=0; i<N+1; i++){
     for (int j=0; j<N; j++){

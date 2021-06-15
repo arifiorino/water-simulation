@@ -116,37 +116,3 @@ float *cg(void){
   return x;
 }
 
-void testCG(void){
-  mallocCG(10, 3);
-  for (int c = 1; c<5; c++){
-    initCG();
-    for (int i=0; i<10; i++){
-      if (i>0) write_A(i, i-1, (float)(-1*c));
-      write_A(i, i, (float)(2*c));
-      if (i<9) write_A(i, i+1, (float)(-1*c));
-      write_b(i, (float)i);
-    }
-    float *r = cg();
-    for (int i=0; i<10; i++){
-      printf("%f, ",r[i]);
-    }
-    printf("\n");
-  }
-}
-
-void printAllA(void){
-  float **AllA = (float **)malloc2D(n, n, sizeof(float));
-  for (int i=0; i<n; i++){
-    for (int j=0; j<n; j++){
-      AllA[i][j] = 0.0f;
-    }
-  }
-  for (int i=0; i<n; i++){
-    for (int k=0; k<max_row; k++){
-      if (A_i[k][i]==-1) continue;
-      int j = A_i[k][i];
-      AllA[i][j] = A[k][i];
-    }
-  }
-  print2D(AllA, n, n);
-}

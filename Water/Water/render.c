@@ -9,37 +9,45 @@
 #include "animate.h"
 #include "utils.h"
 
-#define gridSplit 5
-bool points[N*gridSplit+1][N*gridSplit+1][N*gridSplit+1];
-float gridSize = 1.0f/gridSplit;
+#define split 5
+bool level_set[N*split+1][N*split+1][N*split+1];
+int indices_size, vertices_size;
 
-int triangles_size;
+typedef struct vertex_ll{
+  float x; float y; float z;
+  struct vertex_ll *next;
+} vertex_ll_t;
+bool vertices_hash[N*split+1][N*split+1][N*split+1];
 
 void init_render(void){
-  n_triangles = 0;
-  triangles_size = 0;
-  triangles = NULL;
+  n_vertices = 0;
+  vertices_size = 0;
+  n_indices = 0;
+  indices_size = 0;
+  indices = NULL;
+  vertices = NULL;
+  normals = NULL;
 }
 
-char lookup[16][12] =
+char tetrahedra_to_triangles[16][12] =
  {{-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+  { 0, 1, 0, 3, 0, 2,-1,-1,-1,-1,-1,-1},
+  { 0, 1, 1, 2, 1, 3,-1,-1,-1,-1,-1,-1},
+  { 0, 2, 1, 3, 0, 3, 0, 2, 1, 2, 1, 3},
+  { 0, 2, 2, 3, 1, 2,-1,-1,-1,-1,-1,-1},
+  { 0, 1, 0, 3, 2, 3, 0, 1, 2, 3, 1, 2},
+  { 0, 1, 0, 2, 2, 3, 0, 1, 2, 3, 1, 3},
   { 0, 3, 2, 3, 1, 3,-1,-1,-1,-1,-1,-1},
-  { 0, 2, 1, 2, 3, 2,-1,-1,-1,-1,-1,-1},
-  { 0, 2, 2, 1, 0, 3, 0, 3, 3, 1, 2, 1},
-  { 0, 1, 2, 1, 3, 1,-1,-1,-1,-1,-1,-1},
-  { 0, 3, 0, 1, 2, 3, 0, 1, 3, 2, 2, 1},
-  { 0, 1, 2, 3, 0, 2, 0, 1, 2, 3, 1, 3},
+  { 0, 3, 1, 3, 2, 3,-1,-1,-1,-1,-1,-1},
+  { 0, 1, 2, 3, 0, 2, 0, 1, 1, 3, 2, 3},
+  { 0, 1, 2, 3, 0, 3, 0, 1, 1, 2, 2, 3},
+  { 0, 2, 1, 2, 2, 3,-1,-1,-1,-1,-1,-1},
+  { 0, 2, 0, 3, 1, 3, 0, 2, 1, 3, 1, 2},
+  { 0, 1, 1, 3, 1, 2,-1,-1,-1,-1,-1,-1},
   { 0, 1, 0, 2, 0, 3,-1,-1,-1,-1,-1,-1},
-  { 0, 1, 0, 2, 0, 3,-1,-1,-1,-1,-1,-1},
-  { 0, 1, 2, 3, 0, 2, 0, 1, 2, 3, 1, 3},
-  { 0, 3, 0, 1, 2, 3, 0, 1, 3, 2, 2, 1},
-  { 0, 1, 2, 1, 3, 1,-1,-1,-1,-1,-1,-1},
-  { 0, 2, 2, 1, 0, 3, 0, 3, 3, 1, 2, 1},
-  { 0, 2, 1, 2, 3, 2,-1,-1,-1,-1,-1,-1},
-  { 0, 3, 2, 3, 1, 3,-1,-1,-1,-1,-1,-1},
   {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}};
 
-char tetrahedras[2][5][12] =
+char cube_to_tetrahedra[2][5][12] =
  {{{0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1},
    {0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0},
    {1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0},
@@ -71,20 +79,18 @@ void hash_particles(void){
   }
 }
 
-bool water(float x, float y, float z){
+bool metaballs(float x, float y, float z){
   float F = 0;
   for (int di=-1; di<=1; di++){
     for (int dj=-1; dj<=1; dj++){
       for (int dk=-1; dk<=1; dk++){
-        int i=x;
-        int j=y;
-        int k=z;
+        int i=x; int j=y; int k=z;
         if (i+di>=0 && i+di<N && j+dj>=0 && j+dj<N && k+dk>=0 && k+dk<N){
           particle_t *curr = particles_hash[i+di][j+dj][k+dk];
           while (curr != NULL){
-            float s = (curr->x-x)*(curr->x-x) + (curr->y-y)*(curr->y-y) + (curr->z-z)*(curr->z-z);
-            if (s < 1) F += (1-s*s)*(1-s*s)*(1-s*s);
-            if (F>0.8) return true;
+            float s2 = (curr->x-x)*(curr->x-x) + (curr->y-y)*(curr->y-y) + (curr->z-z)*(curr->z-z);
+            if (s2 < 1) F += (1-s2)*(1-s2)*(1-s2);
+            if (F > 0.8) return true;
             curr = curr->next;
           }
         }
@@ -94,6 +100,11 @@ bool water(float x, float y, float z){
   return false;
 }
 
+void add_vertex(float x, float y, float z){
+  
+}
+
+/*
 void add_triangle(float tri[9]){
   n_triangles++;
   if (n_triangles*3*3 >= triangles_size){
@@ -158,11 +169,12 @@ void marching_tetrahedra(void){
     }
   }
 }
+*/
 
 void render(void){
   hash_particles();
   double t1 = timestamp();
-  marching_tetrahedra();
+  //marching_tetrahedra();
   double t2 = timestamp();
   printf("March:   %f\n",t2-t1);
 }
