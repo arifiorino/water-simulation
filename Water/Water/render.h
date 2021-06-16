@@ -10,5 +10,8 @@
 
 #include "animate.h"
 #include "utils.h"
+#include <unordered_map>
+#include <vector>
+#include <stdexcept>
 
 #endif /* render_h */

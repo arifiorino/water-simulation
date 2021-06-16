@@ -198,15 +198,13 @@ void advect(void){
 }
 
 void extrapolate(void){
-  int *W = (int *)malloc(N*N*N*3*sizeof(int));
-  int W_len;
+  std::vector<int> W;
   int diff[] = {1,0,0,-1,0,0,0,1,0,0,-1,0,0,0,1,0,0,-1};
   //U
   for (int i=0; i<N+1; i++)
     for (int j=0; j<N+1; j++)
       for (int k=0; k<N+1; k++)
         d[i][j][k]=INT_MAX;
-  W_len=0;
   for (int i=0; i<N-1; i++)
     for (int j=0; j<N; j++)
       for (int k=0; k<N; k++)
@@ -222,8 +220,9 @@ void extrapolate(void){
           int k2=k+diff[c*3+2];
           if (i2>=0 && i2<N+1 && j2>=0 && j2<N && k2>=0 && k2<N && d[i2][j2][k2]==0){
             d[i][j][k]=1;
-            W[W_len]=i; W[W_len+1]=j; W[W_len+2]=k;
-            W_len+=3;
+            W.push_back(i);
+            W.push_back(j);
+            W.push_back(k);
             break;
           }
         }
@@ -231,7 +230,7 @@ void extrapolate(void){
     }
   }
   int t=0;
-  while (t<W_len){
+  while (t<W.size()){
     int i=W[t];
     int j=W[t+1];
     int k=W[t+2];
@@ -247,14 +246,16 @@ void extrapolate(void){
           count++;
         } else if (d[i2][j2][k2]==INT_MAX){
           d[i2][j2][k2]=d[i][j][k]+1;
-          W[W_len]=i2; W[W_len+1]=j2; W[W_len+2]=k2;
-          W_len+=3;
+          W.push_back(i2);
+          W.push_back(j2);
+          W.push_back(k2);
         }
       }
     }
     u[i][j][k]=sum/count;
     t+=3;
   }
+  W.clear();
   //V
   for (int i=0; i<N+1; i++)
     for (int j=0; j<N+1; j++)
@@ -265,7 +266,6 @@ void extrapolate(void){
       for (int k=0; k<N; k++)
       if (types[i][j][k]==FLUID || types[i][j+1][k]==FLUID)
         d[i][j+1][k]=0;
-  W_len=0;
   for (int i=0; i<N; i++){
     for (int j=0; j<N+1; j++){
       for (int k=0; k<N; k++){
@@ -276,8 +276,9 @@ void extrapolate(void){
           int k2=k+diff[c*3+2];
           if (i2>=0 && i2<N && j2>=0 && j2<N+1 && k2>=0 && k2<N && d[i2][j2][k2]==0){
             d[i][j][k]=1;
-            W[W_len]=i; W[W_len+1]=j; W[W_len+2]=k;
-            W_len+=3;
+            W.push_back(i);
+            W.push_back(j);
+            W.push_back(k);
             break;
           }
         }
@@ -285,7 +286,7 @@ void extrapolate(void){
     }
   }
   t=0;
-  while (t<W_len){
+  while (t<W.size()){
     int i=W[t];
     int j=W[t+1];
     int k=W[t+2];
@@ -301,14 +302,16 @@ void extrapolate(void){
           count++;
         } else if (d[i2][j2][k2]==INT_MAX){
           d[i2][j2][k2]=d[i][j][k]+1;
-          W[W_len]=i2; W[W_len+1]=j2; W[W_len+2]=k2;
-          W_len+=3;
+          W.push_back(i2);
+          W.push_back(j2);
+          W.push_back(k2);
         }
       }
     }
     v[i][j][k]=sum/count;
     t+=3;
   }
+  W.clear();
   //W
   for (int i=0; i<N+1; i++)
     for (int j=0; j<N+1; j++)
@@ -319,7 +322,6 @@ void extrapolate(void){
       for (int k=0; k<N-1; k++)
       if (types[i][j][k]==FLUID || types[i][j][k+1]==FLUID)
         d[i][j][k+1]=0;
-  W_len=0;
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
       for (int k=0; k<N+1; k++){
@@ -330,8 +332,9 @@ void extrapolate(void){
           int k2=k+diff[c*3+2];
           if (i2>=0 && i2<N && j2>=0 && j2<N && k2>=0 && k2<N+1 && d[i2][j2][k2]==0){
             d[i][j][k]=1;
-            W[W_len]=i; W[W_len+1]=j; W[W_len+2]=k;
-            W_len+=3;
+            W.push_back(i);
+            W.push_back(j);
+            W.push_back(k);
             break;
           }
         }
@@ -339,7 +342,7 @@ void extrapolate(void){
     }
   }
   t=0;
-  while (t<W_len){
+  while (t<W.size()){
     int i=W[t];
     int j=W[t+1];
     int k=W[t+2];
@@ -355,17 +358,15 @@ void extrapolate(void){
           count++;
         } else if (d[i2][j2][k2]==INT_MAX){
           d[i2][j2][k2]=d[i][j][k]+1;
-          W[W_len]=i2;
-          W[W_len+1]=j2;
-          W[W_len+2]=k2;
-          W_len+=3;
+          W.push_back(i2);
+          W.push_back(j2);
+          W.push_back(k2);
         }
       }
     }
     w[i][j][k]=sum/count;
     t+=3;
   }
-  free(W);
 }
 
 void project(void){

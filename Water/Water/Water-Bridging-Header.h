@@ -6,6 +6,5 @@ int n_indices, n_vertices;
 float *vertices, *normals;
 int *indices;
 void init_animation(void);
-void init_render(void);
 void animate(void);
 void render(void);

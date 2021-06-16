@@ -38,7 +38,6 @@ class ViewController: NSViewController, MTKViewDelegate {
     }
     
     init_animation()
-    init_render()
   }
   
   func draw(in view: MTKView) {
@@ -56,6 +55,11 @@ class ViewController: NSViewController, MTKViewDelegate {
     let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
     renderEncoder.setRenderPipelineState(pipelineState)
     renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+    renderEncoder.setVertexBuffer(normalsBuffer, offset: 0, index: 1)
+    let viewMatrix = float4x4(translationBy: simd_float3(-0.5, -0.5, -1)) * float4x4(scaleBy: 1/14);
+    let projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 3, aspectRatio: 1, nearZ: 0.1, farZ: 1)
+    var viewProjectionMatrix = projectionMatrix * viewMatrix
+    renderEncoder.setVertexBytes(&viewProjectionMatrix, length: MemoryLayout<float4x4>.size, index: 2)
     renderEncoder.drawIndexedPrimitives(type: .triangle, indexCount: Int(n_indices), indexType: MTLIndexType.uint32,
                                         indexBuffer: indicesBuffer, indexBufferOffset: 0)
     renderEncoder.endEncoding()

@@ -10,30 +10,17 @@
 #define split 5
 bool level_set[N*split+1][N*split+1][N*split+1];
 int indices_size, vertices_size;
+std::unordered_map<int, int> vertex_to_index;
+std::vector <float> vertices_v, normals_v;
+std::vector<int> indices_v;
 
-int n_indices;
+int n_indices, n_vertices;
 int *indices;
-int n_vertices;
-float *vertices;
-float *normals;
+float *vertices, *normals;
 
-typedef struct vertex_ll{
-  float x; float y; float z;
-  struct vertex_ll *next;
-} vertex_ll_t;
-bool vertices_hash[N*split+1][N*split+1][N*split+1];
+int max_vertex_i = (N * split + 1) * 2;
 
-extern "C" void init_render(void){
-  n_vertices = 0;
-  vertices_size = 0;
-  n_indices = 0;
-  indices_size = 0;
-  indices = NULL;
-  vertices = NULL;
-  normals = NULL;
-}
-
-char tetrahedra_to_triangles[16][12] =
+char tetrahedron_to_triangles[16][12] =
  {{-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
   { 0, 1, 0, 3, 0, 2,-1,-1,-1,-1,-1,-1},
   { 0, 1, 1, 2, 1, 3,-1,-1,-1,-1,-1,-1},
@@ -51,17 +38,17 @@ char tetrahedra_to_triangles[16][12] =
   { 0, 1, 0, 2, 0, 3,-1,-1,-1,-1,-1,-1},
   {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}};
 
-char cube_to_tetrahedra[2][5][12] =
- {{{0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1},
-   {0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0},
-   {1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0},
-   {1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0},
-   {1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0}},
-  {{0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1},
-   {1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0},
-   {1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0},
-   {0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0},
-   {1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0}}};
+char cube_to_tetrahedron[2][5][4][3] =
+ {{{{0, 1, 1}, {1, 0, 1}, {0, 0, 0}, {0, 0, 1}},
+   {{0, 0, 0}, {0, 1, 1}, {0, 1, 0}, {1, 1, 0}},
+   {{1, 0, 1}, {0, 1, 1}, {0, 0, 0}, {1, 1, 0}},
+   {{1, 0, 0}, {1, 0, 1}, {0, 0, 0}, {1, 1, 0}},
+   {{1, 1, 1}, {0, 1, 1}, {1, 0, 1}, {1, 1, 0}}},
+  {{{0, 0, 1}, {1, 1, 1}, {1, 0, 0}, {1, 0, 1}},
+   {{1, 1, 1}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}},
+   {{1, 1, 1}, {0, 0, 1}, {1, 0, 0}, {0, 1, 0}},
+   {{0, 0, 1}, {0, 0, 0}, {1, 0, 0}, {0, 1, 0}},
+   {{1, 1, 1}, {0, 1, 1}, {0, 0, 1}, {0, 1, 0}}}};
 
 void hash_particles(void){
   for (int i=0; i<N; i++)
@@ -84,6 +71,7 @@ void hash_particles(void){
 }
 
 bool metaballs(float x, float y, float z){
+  return (x-8)*(x-8) + (y-8)*(y-8) + (z-8)*(z-8) < 16;
   float F = 0;
   for (int di=-1; di<=1; di++){
     for (int dj=-1; dj<=1; dj++){
@@ -104,81 +92,122 @@ bool metaballs(float x, float y, float z){
   return false;
 }
 
-void add_vertex(float x, float y, float z){
+int hash_vertex(int vertex[3]){
+  return vertex[0] + (vertex[1] * max_vertex_i) +
+         (vertex[2] * max_vertex_i * max_vertex_i);
+}
+
+int add_vertex(int vertex[3]){
+  int h = hash_vertex(vertex);
+  try{
+    return vertex_to_index.at(h);
+  }catch (const std::out_of_range& oor){
+    vertices_v.push_back((float)vertex[0]/split/2.0);
+    vertices_v.push_back((float)vertex[1]/split/2.0);
+    vertices_v.push_back((float)vertex[2]/split/2.0);
+    normals_v.push_back(0);
+    normals_v.push_back(0);
+    normals_v.push_back(0);
+    int index = (int)(vertices_v.size()/3)-1;
+    vertex_to_index.insert({h, index});
+    return index;
+  }
+}
+
+void add_triangle(int triangle[3][3]){
+  int index1 = add_vertex(triangle[0]);
+  int index2 = add_vertex(triangle[1]);
+  int index3 = add_vertex(triangle[2]);
+  float ax = vertices_v[index1*3];
+  float ay = vertices_v[index1*3+1];
+  float az = vertices_v[index1*3+2];
+  float bx = vertices_v[index2*3];
+  float by = vertices_v[index2*3+1];
+  float bz = vertices_v[index2*3+2];
+  float cx = vertices_v[index3*3];
+  float cy = vertices_v[index3*3+1];
+  float cz = vertices_v[index3*3+2];
+  float nx, ny, nz;
+  cross_prod(bx-ax, by-ay, bz-az, cx-bx, cy-by, cz-bz, &nx, &ny, &nz);
+  indices_v.push_back(index1);
+  indices_v.push_back(index2);
+  indices_v.push_back(index3);
+  normals_v[index1*3]+=nx; normals_v[index1*3+1]+=ny; normals_v[index1*3+2]+=nz;
+  normals_v[index2*3]+=nx; normals_v[index2*3+1]+=ny; normals_v[index2*3+2]+=nz;
+  normals_v[index3*3]+=nx; normals_v[index3*3+1]+=ny; normals_v[index3*3+2]+=nz;
+}
+
+void add_tetrahedron(int tetrahedron[4][3]){
+  bool b1 = level_set[tetrahedron[0][0]][tetrahedron[0][1]][tetrahedron[0][2]];
+  bool b2 = level_set[tetrahedron[1][0]][tetrahedron[1][1]][tetrahedron[1][2]];
+  bool b3 = level_set[tetrahedron[2][0]][tetrahedron[2][1]][tetrahedron[2][2]];
+  bool b4 = level_set[tetrahedron[3][0]][tetrahedron[3][1]][tetrahedron[3][2]];
+  int tetrahedron_idx = b1 + (b2<<1) + (b3<<2) + (b4<<3);
+  for (int triangle_i=0; triangle_i<12 && tetrahedron_to_triangles[tetrahedron_idx][triangle_i]!=-1;
+       triangle_i+=6){
+    int triangle[3][3];
+    for (int t = 0; t < 3; t++){
+      char p0 = tetrahedron_to_triangles[tetrahedron_idx][triangle_i + t*2];
+      char p1 = tetrahedron_to_triangles[tetrahedron_idx][triangle_i + t*2+1];
+      int x = 0; int y = 0; int z = 0;
+      if (p0==0 || p1==0){ x+=tetrahedron[0][0]; y+=tetrahedron[0][1]; z+=tetrahedron[0][2]; }
+      if (p0==1 || p1==1){ x+=tetrahedron[1][0]; y+=tetrahedron[1][1]; z+=tetrahedron[1][2]; }
+      if (p0==2 || p1==2){ x+=tetrahedron[2][0]; y+=tetrahedron[2][1]; z+=tetrahedron[2][2]; }
+      if (p0==3 || p1==3){ x+=tetrahedron[3][0]; y+=tetrahedron[3][1]; z+=tetrahedron[3][2]; }
+      triangle[t][0]=x; triangle[t][1]=y; triangle[t][2]=z;
+    }
+    add_triangle(triangle);
+  }
+}
+
+void add_cube(int cube[3]){
+  for (int tetrahedron_i = 0; tetrahedron_i<5; tetrahedron_i++){
+    int tetrahedron[4][3];
+    for (int i=0; i<4; i++)
+      for (int j=0; j<3; j++)
+        tetrahedron[i][j]=cube_to_tetrahedron[(cube[0]+cube[1]+cube[2])%2][tetrahedron_i][i][j];
+    tetrahedron[0][0]+=cube[0]; tetrahedron[0][1]+=cube[1]; tetrahedron[0][2]+=cube[2];
+    tetrahedron[1][0]+=cube[0]; tetrahedron[1][1]+=cube[1]; tetrahedron[1][2]+=cube[2];
+    tetrahedron[2][0]+=cube[0]; tetrahedron[2][1]+=cube[1]; tetrahedron[2][2]+=cube[2];
+    tetrahedron[3][0]+=cube[0]; tetrahedron[3][1]+=cube[1]; tetrahedron[3][2]+=cube[2];
+    add_tetrahedron(tetrahedron);
+  }
+}
+
+
+void marching_tetrahedra(void){
+  for (int i=0; i<N*split+1; i++){
+    for (int j=0; j<N*split+1; j++){
+      for (int k=0; k<N*split+1; k++){
+      level_set[i][j][k]=metaballs((float)i/split,(float)j/split,(float)k/split);
+      }
+    }
+  }
+  for (int i=0; i<N*split; i++){
+    for (int j=0; j<N*split; j++){
+      for (int k=0; k<N*split; k++){
+        int cube[] = {i,j,k};
+        add_cube(cube);
+      }
+    }
+  }
   
 }
 
-/*
-void add_triangle(float tri[9]){
-  n_triangles++;
-  if (n_triangles*3*3 >= triangles_size){
-    triangles_size *= 2;
-    triangles = realloc(triangles, triangles_size * sizeof(float));
-    printf("%p\n",triangles);
-  }
-  for (int i=0; i<9; i++)
-    triangles[(n_triangles-1)*3*3+i]=tri[i] * gridSize;
-}
-
-void tetrahedra(int tetra[12]){
-  bool a = points[tetra[0]][tetra[1]][tetra[2]];
-  bool b = points[tetra[3]][tetra[4]][tetra[5]];
-  bool c = points[tetra[6]][tetra[7]][tetra[8]];
-  bool d = points[tetra[9]][tetra[10]][tetra[11]];
-  int idx = d + (c<<1) + (b<<2) + (a<<3);
-  for (int idx2=0; idx2<=6 && lookup[idx][idx2] != -1; idx2+=6){
-    float tri[9];
-    for (int t = 0; t < 3; t++){
-      char p0 = lookup[idx][idx2+t*2];
-      char p1 = lookup[idx][idx2+t*2+1];
-      float x = 0;
-      float y = 0;
-      float z = 0;
-      if (p0==0 || p1==0){ x+=tetra[0]; y+=tetra[1]; z+=tetra[2]; }
-      if (p0==1 || p1==1){ x+=tetra[3]; y+=tetra[4]; z+=tetra[5]; }
-      if (p0==2 || p1==2){ x+=tetra[6]; y+=tetra[7]; z+=tetra[8]; }
-      if (p0==3 || p1==3){ x+=tetra[9]; y+=tetra[10]; z+=tetra[11]; }
-      x/=2; y/=2; z/=2;
-      tri[t*3]=x; tri[t*3+1]=y; tri[t*3+2]=z;
-    }
-    add_triangle(tri);
-  }
-}
-
-void marching_tetrahedra(void){
-  n_triangles = 0;
-  int count = 0;
-  for (int i=0; i<N*gridSplit+1; i++){
-    for (int j=0; j<N*gridSplit+1; j++){
-      for (int k=0; k<N*gridSplit+1; k++){
-      points[i][j][k]=water(i*gridSize,j*gridSize,k*gridSize);
-      count++;
-      }
-    }
-  }
-  for (int i=0; i<N*gridSplit; i++){
-    for (int j=0; j<N*gridSplit; j++){
-      for (int k=0; k<N*gridSplit; k++){
-        for (int tetra_i = 0; tetra_i<5; tetra_i++){
-          int tetra[12];
-          for (int q=0; q<12; q++)
-            tetra[q]=tetrahedras[(i+j+k)%2][tetra_i][q];
-          tetra[0]+=i; tetra[1]+=j; tetra[2]+=k;
-          tetra[3]+=i; tetra[4]+=j; tetra[5]+=k;
-          tetra[6]+=i; tetra[7]+=j; tetra[8]+=k;
-          tetra[9]+=i; tetra[10]+=j; tetra[11]+=k;
-          tetrahedra(tetra);
-        }
-      }
-    }
-  }
-}
-*/
-
 extern "C" void render(void){
-  hash_particles();
+  vertex_to_index.clear();
+  vertices_v.clear();
+  normals_v.clear();
+  indices_v.clear();
+  
   double t1 = timestamp();
-  //marching_tetrahedra();
+  hash_particles();
+  marching_tetrahedra();
   double t2 = timestamp();
-  printf("March:   %f\n",t2-t1);
+  n_vertices = (int)(vertices_v.size()/3);
+  n_indices = (int)indices_v.size();
+  vertices = vertices_v.data();
+  normals = normals_v.data();
+  indices = indices_v.data();
+  printf("Render:    %f\n",t2-t1);
 }

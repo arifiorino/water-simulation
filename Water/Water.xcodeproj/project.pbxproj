@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		D4258E452661CBC00056A2B5 /* cg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4258E442661CBC00056A2B5 /* cg.cpp */; };
 		D4258E482661CDD70056A2B5 /* utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4258E472661CDD70056A2B5 /* utils.cpp */; };
+		D43A29162679A30B00E0797D /* MathUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = D43A29152679A30B00E0797D /* MathUtilities.swift */; };
 		D4F9A39A266BC98E00CA9DB0 /* render.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D4F9A399266BC98E00CA9DB0 /* render.cpp */; };
 		D4FA7DCC26617DB600A2342B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FA7DCB26617DB600A2342B /* AppDelegate.swift */; };
 		D4FA7DCE26617DB600A2342B /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FA7DCD26617DB600A2342B /* ViewController.swift */; };
@@ -23,6 +24,7 @@
 		D4258E442661CBC00056A2B5 /* cg.cpp */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.cpp.cpp; path = cg.cpp; sourceTree = "<group>"; tabWidth = 2; wrapsLines = 0; };
 		D4258E462661CDD70056A2B5 /* utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = utils.h; sourceTree = "<group>"; };
 		D4258E472661CDD70056A2B5 /* utils.cpp */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.cpp.cpp; path = utils.cpp; sourceTree = "<group>"; tabWidth = 2; wrapsLines = 0; };
+		D43A29152679A30B00E0797D /* MathUtilities.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MathUtilities.swift; sourceTree = "<group>"; };
 		D4F9A398266BC98E00CA9DB0 /* render.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = render.h; sourceTree = "<group>"; };
 		D4F9A399266BC98E00CA9DB0 /* render.cpp */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.cpp.cpp; path = render.cpp; sourceTree = "<group>"; tabWidth = 2; wrapsLines = 0; };
 		D4FA7DC826617DB600A2342B /* Water.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Water.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -69,6 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				D4FA7DCB26617DB600A2342B /* AppDelegate.swift */,
+				D43A29152679A30B00E0797D /* MathUtilities.swift */,
 				D4FA7DCD26617DB600A2342B /* ViewController.swift */,
 				D4FA7DDF26617F6400A2342B /* Render.metal */,
 				D4FA7DCF26617DB700A2342B /* Assets.xcassets */,
@@ -162,6 +165,7 @@
 				D4258E452661CBC00056A2B5 /* cg.cpp in Sources */,
 				D4FA7DCE26617DB600A2342B /* ViewController.swift in Sources */,
 				D4FA7DE026617F6400A2342B /* Render.metal in Sources */,
+				D43A29162679A30B00E0797D /* MathUtilities.swift in Sources */,
 				D4258E482661CDD70056A2B5 /* utils.cpp in Sources */,
 				D4FA7DCC26617DB600A2342B /* AppDelegate.swift in Sources */,
 				D4FA7DDE26617E6300A2342B /* animate.cpp in Sources */,
