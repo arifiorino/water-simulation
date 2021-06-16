@@ -17,6 +17,7 @@ class ViewController: NSViewController, MTKViewDelegate {
   var normalsBuffer: MTLBuffer!
   var indicesBuffer: MTLBuffer!
   var device: MTLDevice!
+  var depthStencilState: MTLDepthStencilState!
     
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -31,11 +32,20 @@ class ViewController: NSViewController, MTKViewDelegate {
     pipelineDescriptor.vertexFunction = library.makeFunction(name: "vertexShader")
     pipelineDescriptor.fragmentFunction = library.makeFunction(name: "fragmentShader")
     pipelineDescriptor.colorAttachments[0].pixelFormat = mtkView.colorPixelFormat
+    pipelineDescriptor.depthAttachmentPixelFormat = .depth32Float
     do {
       pipelineState = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
     }catch{
       print("Error: \(error)")
     }
+    
+    let depthStencilDescriptor = MTLDepthStencilDescriptor()
+    depthStencilDescriptor.depthCompareFunction = .less
+    depthStencilDescriptor.isDepthWriteEnabled = true
+    depthStencilState = device.makeDepthStencilState(descriptor: depthStencilDescriptor)!
+    mtkView.colorPixelFormat = .bgra8Unorm
+    mtkView.depthStencilPixelFormat = .depth32Float
+    
     
     init_animation()
   }
@@ -53,13 +63,18 @@ class ViewController: NSViewController, MTKViewDelegate {
     let renderPassDescriptor = view.currentRenderPassDescriptor!
     renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1, 1, 1, 1)
     let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
+    renderEncoder.setDepthStencilState(depthStencilState)
     renderEncoder.setRenderPipelineState(pipelineState)
+    
+    let N: Float = 32.0;
+    let scaleMatrix = float4x4(scaleByX: 1.0/N*2, scaleByY: 1.0/N*2, scaleByZ: 1.0/N*2);
+    let translationMatrix = float4x4(translationBy: simd_float3(-1, -1, -5));
+    let projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 6, aspectRatio: 1, nearZ: 0.1, farZ: 10)
+    var viewProjectionMatrix = projectionMatrix * translationMatrix * scaleMatrix
+    renderEncoder.setVertexBytes(&viewProjectionMatrix, length: MemoryLayout<float4x4>.size, index: 2)
+    
     renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
     renderEncoder.setVertexBuffer(normalsBuffer, offset: 0, index: 1)
-    let viewMatrix = float4x4(translationBy: simd_float3(-0.5, -0.5, -1)) * float4x4(scaleBy: 1/14);
-    let projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 3, aspectRatio: 1, nearZ: 0.1, farZ: 1)
-    var viewProjectionMatrix = projectionMatrix * viewMatrix
-    renderEncoder.setVertexBytes(&viewProjectionMatrix, length: MemoryLayout<float4x4>.size, index: 2)
     renderEncoder.drawIndexedPrimitives(type: .triangle, indexCount: Int(n_indices), indexType: MTLIndexType.uint32,
                                         indexBuffer: indicesBuffer, indexBufferOffset: 0)
     renderEncoder.endEncoding()

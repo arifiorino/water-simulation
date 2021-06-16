@@ -25,7 +25,7 @@ void config1(void){
   n_particles = 0;
   for (int i=1; i<N/2; i++){
     for (int j=1; j<N/2; j++){
-      for (int k=N/2; k<N-1; k++){
+      for (int k=1; k<N/2; k++){
         types[i][j][k]=FLUID;
         n_particles+=8;
       }
@@ -68,9 +68,9 @@ extern "C" void init_animation(void){
             float dx=(d&1)*0.5+0.25;
             float dy=((d>>1)&1)*0.5+0.25;
             float dz=((d>>2)&1)*0.5+0.25;
-            particles[c].x= i+dx;//+(rand2()*0.5-0.25);
-            particles[c].y= j+dy;//+(rand2()*0.5-0.25);
-            particles[c].z= k+dz;//+(rand2()*0.5-0.25);
+            particles[c].x= i+dx+(rand2()*0.5-0.25);
+            particles[c].y= j+dy+(rand2()*0.5-0.25);
+            particles[c].z= k+dz+(rand2()*0.5-0.25);
             c++;
           }
         }
@@ -239,7 +239,7 @@ void extrapolate(void){
     for (int c=0; c<6; c++){
       int i2=i+diff[c*3];
       int j2=j+diff[c*3+1];
-      int k2=j+diff[c*3+2];
+      int k2=k+diff[c*3+2];
       if (i2>=0 && i2<N+1 && j2>=0 && j2<N && k2>=0 && k2<N){
         if (d[i2][j2][k2]<d[i][j][k]){
           sum += u[i2][j2][k2];
@@ -370,6 +370,16 @@ void extrapolate(void){
 }
 
 void project(void){
+  for (int i=0; i<N+1; i++){
+    for (int j=0; j<N+1; j++){
+      for (int k=0; k<N+1; k++){
+        u2[i][j][k]=0;
+        v2[i][j][k]=0;
+        w2[i][j][k]=0;
+      }
+    }
+  }
+        
   int n_fluid = 0;
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
@@ -526,6 +536,15 @@ void project(void){
   }
   free(fluid_cells);
   freeCG();
+  for (int i=0; i<N+1; i++){
+    for (int j=0; j<N+1; j++){
+      for (int k=0; k<N+1; k++){
+        u[i][j][k]=u2[i][j][k];
+        v[i][j][k]=v2[i][j][k];
+        w[i][j][k]=w2[i][j][k];
+      }
+    }
+  }
 }
 
 void move_particles(void){
@@ -547,13 +566,13 @@ void move_particles(void){
 }
 
 extern "C" void animate(void){
-  advect();
   double t1 = timestamp();
+  advect();
   project();
-  double t2 = timestamp();
   extrapolate();
   move_particles();
-  printf("Project: %f\n",t2-t1);
+  double t2 = timestamp();
+  printf("Animate: %f\n",t2-t1);
   for (int i=0; i<N; i++)
     for (int j=0; j<N-1; j++)
       for (int k=0; k<N; k++)

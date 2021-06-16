@@ -17,7 +17,6 @@ vertex Vertex vertexShader(const device float *vertexArray [[buffer(0)]],
                            const device float *normalsArray [[buffer(1)]],
                            const device float4x4 *projMatrix [[buffer(2)]],
                            unsigned int vid [[vertex_id]]){
-  int N = 16;
   Vertex out;
   out.pos = float4(vertexArray[vid*3], vertexArray[vid*3+1], vertexArray[vid*3+2], 1);
   out.pos = (*projMatrix) * out.pos;
@@ -25,10 +24,10 @@ vertex Vertex vertexShader(const device float *vertexArray [[buffer(0)]],
   return out;
 }
 
-constant float3 ambientIntensity = 0.2;
-constant float3 lightPosition(2, 2, 2); // Light position in world space
+constant float3 ambientIntensity = 0.4;
+constant float3 lightPosition(0, -2, 4); // Light position in world space
 constant float3 lightColor(1, 1, 1);
-constant float3 worldCameraPosition(0, 0, 2);
+constant float3 worldCameraPosition(0, 0, 0);
 constant float3 baseColor(0, 0, 1);
 constant float specularPower = 200;
 

@@ -7,7 +7,7 @@
 
 #include "render.h"
 
-#define split 5
+#define split 3
 bool level_set[N*split+1][N*split+1][N*split+1];
 int indices_size, vertices_size;
 std::unordered_map<int, int> vertex_to_index;
@@ -71,7 +71,7 @@ void hash_particles(void){
 }
 
 bool metaballs(float x, float y, float z){
-  return (x-8)*(x-8) + (y-8)*(y-8) + (z-8)*(z-8) < 16;
+  //return (x-8)*(x-8) + (y-8)*(y-8) + (z-8)*(z-8) < 16;
   float F = 0;
   for (int di=-1; di<=1; di++){
     for (int dj=-1; dj<=1; dj++){
@@ -176,6 +176,7 @@ void add_cube(int cube[3]){
 
 
 void marching_tetrahedra(void){
+  double t1 = timestamp();
   for (int i=0; i<N*split+1; i++){
     for (int j=0; j<N*split+1; j++){
       for (int k=0; k<N*split+1; k++){
@@ -183,6 +184,7 @@ void marching_tetrahedra(void){
       }
     }
   }
+  double t2 = timestamp();
   for (int i=0; i<N*split; i++){
     for (int j=0; j<N*split; j++){
       for (int k=0; k<N*split; k++){
@@ -191,7 +193,8 @@ void marching_tetrahedra(void){
       }
     }
   }
-  
+  double t3 = timestamp();
+  printf("Render:  %f %f\n",t2-t1, t3-t2);
 }
 
 extern "C" void render(void){
@@ -200,14 +203,14 @@ extern "C" void render(void){
   normals_v.clear();
   indices_v.clear();
   
-  double t1 = timestamp();
   hash_particles();
+  //double t1 = timestamp();
   marching_tetrahedra();
-  double t2 = timestamp();
+  //double t2 = timestamp();
   n_vertices = (int)(vertices_v.size()/3);
   n_indices = (int)indices_v.size();
   vertices = vertices_v.data();
   normals = normals_v.data();
   indices = indices_v.data();
-  printf("Render:    %f\n",t2-t1);
+  
 }
