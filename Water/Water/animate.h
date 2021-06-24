@@ -12,7 +12,7 @@
 #include "cg.h"
 #include <vector>
 
-#define N 64
+#define N 32
 extern int n_particles;
 
 typedef struct particle{

@@ -25,7 +25,7 @@ vertex Vertex vertexShader(const device float *vertexArray [[buffer(0)]],
                            const device float *normalsArray [[buffer(1)]],
                            constant Uniforms &uniforms [[buffer(2)]],
                            unsigned int vid [[vertex_id]]){
-  float N=64;
+  float N=32;
   Vertex vertexIn;
   vertexIn.position = float4(vertexArray[vid*3]/N-0.5, vertexArray[vid*3+1]/N-0.5, vertexArray[vid*3+2]/N-0.5, 1);
   vertexIn.worldNormal = normalize(float3(normalsArray[vid*3], normalsArray[vid*3+1], normalsArray[vid*3+2]));
@@ -38,10 +38,10 @@ vertex Vertex vertexShader(const device float *vertexArray [[buffer(0)]],
   return vertexOut;
 }
 
-constant float3 ambientIntensity = 0.1;
+constant float3 ambientIntensity = 0.3;
 constant float3 lightPosition(2, 2, 2); // Light position in world space
 constant float3 lightColor(1, 1, 1);
-constant float3 baseColor(1.0, 0, 0);
+constant float3 baseColor(0, 0, 1.0);
 
 fragment float4 fragmentShader(Vertex fragmentIn [[stage_in]]){
   float3 N = normalize(fragmentIn.worldNormal.xyz);

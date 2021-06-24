@@ -60,11 +60,11 @@ class ViewController: NSViewController, MTKViewDelegate {
     animate()
     render()
     vertexBuffer = device.makeBuffer(length: Int(n_vertices) * 3 * 4, options: [])!
-    vertexBuffer.contents().copyMemory(from: vertices, byteCount: Int(n_vertices) * 3 * 4)
+    vertexBuffer.contents().copyMemory(from: vertices_arr, byteCount: Int(n_vertices) * 3 * 4)
     normalsBuffer = device.makeBuffer(length: Int(n_vertices) * 3 * 4, options: [])!
-    normalsBuffer.contents().copyMemory(from: normals, byteCount: Int(n_vertices) * 3 * 4)
+    normalsBuffer.contents().copyMemory(from: normals_arr, byteCount: Int(n_vertices) * 3 * 4)
     indicesBuffer = device.makeBuffer(length: Int(n_indices) * 4, options: [])!
-    indicesBuffer.contents().copyMemory(from: indices, byteCount: Int(n_indices) * 4)
+    indicesBuffer.contents().copyMemory(from: indices_arr, byteCount: Int(n_indices) * 4)
     let commandBuffer = commandQueue.makeCommandBuffer()!
     let renderPassDescriptor = view.currentRenderPassDescriptor!
     renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1, 1, 1, 1)
@@ -72,7 +72,7 @@ class ViewController: NSViewController, MTKViewDelegate {
     renderEncoder.setDepthStencilState(depthStencilState)
     renderEncoder.setRenderPipelineState(pipelineState)
     
-    time += 1 / Float(view.preferredFramesPerSecond)
+    time += 1 / Float(view.preferredFramesPerSecond) / 2.0
     let angle = -time
     let modelMatrix = float4x4(rotationAbout: SIMD3<Float>(0, 1, 0), by: angle) *  float4x4(scaleBy: 2)
 

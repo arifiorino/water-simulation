@@ -13,5 +13,7 @@
 #include <unordered_map>
 #include <vector>
 #include <stdexcept>
+#include <mutex>
+#include <atomic>
 
 #endif /* render_h */

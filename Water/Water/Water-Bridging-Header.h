@@ -3,8 +3,8 @@
 //
 
 int n_indices, n_vertices;
-float *vertices, *normals;
-int *indices;
+float *vertices_arr, *normals_arr;
+int *indices_arr;
 void init_animation(void);
 void animate(void);
 void render(void);

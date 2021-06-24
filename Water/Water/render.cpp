@@ -11,12 +11,13 @@
 bool level_set[N*split+1][N*split+1][N*split+1];
 int indices_size, vertices_size;
 std::unordered_map<int, int> vertex_to_index;
-std::vector <float> vertices_v, normals_v;
-std::vector<int> indices_v;
+std::vector<float> vertices, normals;
+std::vector<int> indices;
+std::mutex march_mutex;
 
 int n_indices, n_vertices;
-int *indices;
-float *vertices, *normals;
+int *indices_arr;
+float *vertices_arr, *normals_arr;
 
 int max_vertex_i = (N * split + 1) * 2;
 
@@ -99,42 +100,49 @@ int hash_vertex(int vertex[3]){
 
 int add_vertex(int vertex[3]){
   int h = hash_vertex(vertex);
+  int index;
+  march_mutex.lock();
   try{
-    return vertex_to_index.at(h);
+    index = vertex_to_index.at(h);
   }catch (const std::out_of_range& oor){
-    vertices_v.push_back((float)vertex[0]/split/2.0);
-    vertices_v.push_back((float)vertex[1]/split/2.0);
-    vertices_v.push_back((float)vertex[2]/split/2.0);
-    normals_v.push_back(0);
-    normals_v.push_back(0);
-    normals_v.push_back(0);
-    int index = (int)(vertices_v.size()/3)-1;
+    vertices.push_back((float)vertex[0]/split/2.0);
+    vertices.push_back((float)vertex[1]/split/2.0);
+    vertices.push_back((float)vertex[2]/split/2.0);
+    normals.push_back(0);
+    normals.push_back(0);
+    normals.push_back(0);
+    index = (int)(vertices.size()/3)-1;
     vertex_to_index.insert({h, index});
-    return index;
   }
+  march_mutex.unlock();
+  return index;
 }
 
 void add_triangle(int triangle[3][3]){
   int index1 = add_vertex(triangle[0]);
   int index2 = add_vertex(triangle[1]);
   int index3 = add_vertex(triangle[2]);
-  float ax = vertices_v[index1*3];
-  float ay = vertices_v[index1*3+1];
-  float az = vertices_v[index1*3+2];
-  float bx = vertices_v[index2*3];
-  float by = vertices_v[index2*3+1];
-  float bz = vertices_v[index2*3+2];
-  float cx = vertices_v[index3*3];
-  float cy = vertices_v[index3*3+1];
-  float cz = vertices_v[index3*3+2];
+  float ax = vertices[index1*3];
+  float ay = vertices[index1*3+1];
+  float az = vertices[index1*3+2];
+  float bx = vertices[index2*3];
+  float by = vertices[index2*3+1];
+  float bz = vertices[index2*3+2];
+  float cx = vertices[index3*3];
+  float cy = vertices[index3*3+1];
+  float cz = vertices[index3*3+2];
   float nx, ny, nz;
   cross_prod(bx-ax, by-ay, bz-az, cx-bx, cy-by, cz-bz, &nx, &ny, &nz);
-  indices_v.push_back(index1);
-  indices_v.push_back(index2);
-  indices_v.push_back(index3);
-  normals_v[index1*3]+=nx; normals_v[index1*3+1]+=ny; normals_v[index1*3+2]+=nz;
-  normals_v[index2*3]+=nx; normals_v[index2*3+1]+=ny; normals_v[index2*3+2]+=nz;
-  normals_v[index3*3]+=nx; normals_v[index3*3+1]+=ny; normals_v[index3*3+2]+=nz;
+  float m = sqrt(nx * nx + ny * ny + nz * nz);
+  nx /= m; ny /= m; nz /= m;
+  march_mutex.lock();
+  indices.push_back(index1);
+  indices.push_back(index2);
+  indices.push_back(index3);
+  normals[index1*3]+=nx; normals[index1*3+1]+=ny; normals[index1*3+2]+=nz;
+  normals[index2*3]+=nx; normals[index2*3+1]+=ny; normals[index2*3+2]+=nz;
+  normals[index3*3]+=nx; normals[index3*3+1]+=ny; normals[index3*3+2]+=nz;
+  march_mutex.unlock();
 }
 
 void add_tetrahedron(int tetrahedron[4][3]){
@@ -161,6 +169,17 @@ void add_tetrahedron(int tetrahedron[4][3]){
 }
 
 void add_cube(int cube[3]){
+  bool b1 = level_set[cube[0]][cube[1]][cube[2]];
+  bool b2 = level_set[cube[0]][cube[1]][cube[2]+1];
+  bool b3 = level_set[cube[0]][cube[1]+1][cube[2]];
+  bool b4 = level_set[cube[0]][cube[1]+1][cube[2]+1];
+  bool b5 = level_set[cube[0]+1][cube[1]][cube[2]];
+  bool b6 = level_set[cube[0]+1][cube[1]][cube[2]+1];
+  bool b7 = level_set[cube[0]+1][cube[1]+1][cube[2]];
+  bool b8 = level_set[cube[0]+1][cube[1]+1][cube[2]+1];
+  if ((b1 && b2 && b3 && b4 && b5 && b6 && b7 && b8) ||
+      (!b1 && !b2 && !b3 && !b4 && !b5 && !b6 && !b7 && !b8))
+    return;
   for (int tetrahedron_i = 0; tetrahedron_i<5; tetrahedron_i++){
     int tetrahedron[4][3];
     for (int i=0; i<4; i++)
@@ -177,40 +196,44 @@ void add_cube(int cube[3]){
 
 void marching_tetrahedra(void){
   double t1 = timestamp();
-  for (int i=0; i<N*split+1; i++){
-    for (int j=0; j<N*split+1; j++){
-      for (int k=0; k<N*split+1; k++){
-      level_set[i][j][k]=metaballs((float)i/split,(float)j/split,(float)k/split);
+  parallel_for(N*split+1, [&](int start, int end){
+    for (int i=start; i<end; i++){
+      for (int j=0; j<N*split+1; j++){
+        for (int k=0; k<N*split+1; k++){
+        level_set[i][j][k]=metaballs((float)i/split,(float)j/split,(float)k/split);
+        }
       }
     }
-  }
+  });
   double t2 = timestamp();
-  for (int i=0; i<N*split; i++){
-    for (int j=0; j<N*split; j++){
-      for (int k=0; k<N*split; k++){
-        int cube[] = {i,j,k};
-        add_cube(cube);
+  parallel_for(N*split, [&](int start, int end){
+    for (int i=start; i<end; i++){
+      for (int j=0; j<N*split; j++){
+        for (int k=0; k<N*split; k++){
+          int cube[] = {i,j,k};
+          add_cube(cube);
+        }
       }
     }
-  }
+  });
   double t3 = timestamp();
   printf("Render:  %f %f\n",t2-t1, t3-t2);
 }
 
 extern "C" void render(void){
   vertex_to_index.clear();
-  vertices_v.clear();
-  normals_v.clear();
-  indices_v.clear();
+  vertices.clear();
+  normals.clear();
+  indices.clear();
   
   hash_particles();
   //double t1 = timestamp();
   marching_tetrahedra();
   //double t2 = timestamp();
-  n_vertices = (int)(vertices_v.size()/3);
-  n_indices = (int)indices_v.size();
-  vertices = vertices_v.data();
-  normals = normals_v.data();
-  indices = indices_v.data();
+  n_vertices = (int)(vertices.size()/3);
+  n_indices = (int)indices.size();
+  vertices_arr = vertices.data();
+  normals_arr = normals.data();
+  indices_arr = indices.data();
   
 }
