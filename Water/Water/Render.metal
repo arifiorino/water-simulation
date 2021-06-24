@@ -9,38 +9,44 @@
 using namespace metal;
 
 struct Vertex {
-  float4 pos [[position]];
-  float3 normal;
+  float4 position [[position]];
+  float3 worldNormal;
+  float3 worldPosition;
+  float2 texCoords;
+};
+
+struct Uniforms {
+    float4x4 modelMatrix;
+    float4x4 viewProjectionMatrix;
+    float3x3 normalMatrix;
 };
 
 vertex Vertex vertexShader(const device float *vertexArray [[buffer(0)]],
                            const device float *normalsArray [[buffer(1)]],
-                           const device float4x4 *projMatrix [[buffer(2)]],
+                           constant Uniforms &uniforms [[buffer(2)]],
                            unsigned int vid [[vertex_id]]){
-  Vertex out;
-  out.pos = float4(vertexArray[vid*3], vertexArray[vid*3+1], vertexArray[vid*3+2], 1);
-  out.pos = (*projMatrix) * out.pos;
-  out.normal = float3(normalsArray[vid*3], normalsArray[vid*3+1], normalsArray[vid*3+2]);
-  return out;
+  float N=64;
+  Vertex vertexIn;
+  vertexIn.position = float4(vertexArray[vid*3]/N-0.5, vertexArray[vid*3+1]/N-0.5, vertexArray[vid*3+2]/N-0.5, 1);
+  vertexIn.worldNormal = normalize(float3(normalsArray[vid*3], normalsArray[vid*3+1], normalsArray[vid*3+2]));
+  float4 worldPosition = uniforms.modelMatrix * vertexIn.position;
+  Vertex vertexOut;
+  vertexOut.position = uniforms.viewProjectionMatrix * worldPosition;
+  vertexOut.worldPosition = worldPosition.xyz;
+  vertexOut.worldNormal = uniforms.normalMatrix * vertexIn.worldNormal;
+  vertexOut.texCoords = vertexIn.texCoords;
+  return vertexOut;
 }
 
-constant float3 ambientIntensity = 0.4;
-constant float3 lightPosition(0, -2, 4); // Light position in world space
+constant float3 ambientIntensity = 0.1;
+constant float3 lightPosition(2, 2, 2); // Light position in world space
 constant float3 lightColor(1, 1, 1);
-constant float3 worldCameraPosition(0, 0, 0);
-constant float3 baseColor(0, 0, 1);
-constant float specularPower = 200;
+constant float3 baseColor(1.0, 0, 0);
 
 fragment float4 fragmentShader(Vertex fragmentIn [[stage_in]]){
-  float3 N = normalize(fragmentIn.normal);
-  float3 pos = float3(fragmentIn.pos.x, fragmentIn.pos.y, fragmentIn.pos.z);
-  float3 L = normalize(lightPosition - pos);
+  float3 N = normalize(fragmentIn.worldNormal.xyz);
+  float3 L = normalize(lightPosition - fragmentIn.worldPosition.xyz);
   float3 diffuseIntensity = saturate(dot(N, L));
-  float3 V = normalize(worldCameraPosition - pos);
-  float3 H = normalize(L + V);
-  float specularBase = saturate(dot(N, H));
-  float specularIntensity = powr(specularBase, specularPower);
-  float3 finalColor = saturate(ambientIntensity + diffuseIntensity) * baseColor * lightColor +
-                      specularIntensity * lightColor;
+  float3 finalColor = saturate(ambientIntensity + diffuseIntensity) * lightColor * baseColor;
   return float4(finalColor, 1);
 }

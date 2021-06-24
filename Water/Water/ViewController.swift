@@ -9,8 +9,14 @@ import Cocoa
 import Metal
 import MetalKit
 
+struct Uniforms {
+    var modelMatrix: float4x4
+    var viewProjectionMatrix: float4x4
+    var normalMatrix: float3x3
+}
+
 class ViewController: NSViewController, MTKViewDelegate {
-    
+  var time: Float = 0
   var commandQueue: MTLCommandQueue!
   var pipelineState: MTLRenderPipelineState!
   var vertexBuffer: MTLBuffer!
@@ -66,13 +72,19 @@ class ViewController: NSViewController, MTKViewDelegate {
     renderEncoder.setDepthStencilState(depthStencilState)
     renderEncoder.setRenderPipelineState(pipelineState)
     
-    let N: Float = 32.0;
-    let scaleMatrix = float4x4(scaleByX: 1.0/N*2, scaleByY: 1.0/N*2, scaleByZ: 1.0/N*2);
-    let translationMatrix = float4x4(translationBy: simd_float3(-1, -1, -5));
-    let projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 6, aspectRatio: 1, nearZ: 0.1, farZ: 10)
-    var viewProjectionMatrix = projectionMatrix * translationMatrix * scaleMatrix
-    renderEncoder.setVertexBytes(&viewProjectionMatrix, length: MemoryLayout<float4x4>.size, index: 2)
+    time += 1 / Float(view.preferredFramesPerSecond)
+    let angle = -time
+    let modelMatrix = float4x4(rotationAbout: SIMD3<Float>(0, 1, 0), by: angle) *  float4x4(scaleBy: 2)
+
+    let viewMatrix = float4x4(translationBy: SIMD3<Float>(0, 0, -2))
+    let aspectRatio = Float(view.drawableSize.width / view.drawableSize.height)
+    let projectionMatrix = float4x4(perspectiveProjectionFov: Float.pi / 3, aspectRatio: aspectRatio, nearZ: 0.1, farZ: 100)
+    let viewProjectionMatrix = projectionMatrix * viewMatrix
     
+    var uniforms = Uniforms(modelMatrix: modelMatrix, viewProjectionMatrix: viewProjectionMatrix, normalMatrix: modelMatrix.normalMatrix)
+    
+    renderEncoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 2)
+
     renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
     renderEncoder.setVertexBuffer(normalsBuffer, offset: 0, index: 1)
     renderEncoder.drawIndexedPrimitives(type: .triangle, indexCount: Int(n_indices), indexType: MTLIndexType.uint32,

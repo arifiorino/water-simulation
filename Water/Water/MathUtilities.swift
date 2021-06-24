@@ -7,10 +7,10 @@ extension simd_float4 {
 }
 
 extension float4x4 {
-    init(scaleByX s1: Float, scaleByY s2: Float, scaleByZ s3: Float) {
-        self.init(simd_float4(s1, 0, 0, 0),
-                  simd_float4(0, s2, 0, 0),
-                  simd_float4(0, 0, s3, 0),
+    init(scaleBy s: Float) {
+        self.init(simd_float4(s, 0, 0, 0),
+                  simd_float4(0, s, 0, 0),
+                  simd_float4(0, 0, s, 0),
                   simd_float4(0, 0, 0, 1))
     }
     
