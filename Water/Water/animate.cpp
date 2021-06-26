@@ -33,6 +33,32 @@ void config1(void){
   }
 }
 
+void config2(void){
+  n_particles = 0;
+  /*for (int i=1; i<N-1; i++){
+    for (int j=1; j<N/10; j++){
+      for (int k=1; k<N-1; k++){
+        types[i][j][k]=FLUID;
+        n_particles+=8;
+      }
+    }
+  }*/
+  int cx=N/2;
+  int cy=3*N/4;
+  int cz=N/2;
+  int r2=(N/8)*(N/8);
+  for (int i=1; i<N-1; i++){
+    for (int j=1; j<N-1; j++){
+      for (int k=1; k<N-1; k++){
+        if ((i-cx)*(i-cx)+(j-cy)*(j-cy)+(k-cz)*(k-cz)<r2){
+          types[i][j][k]=FLUID;
+          n_particles+=8;
+        }
+      }
+    }
+  }
+}
+
 extern "C" void init_animation(void){
   for (int i=0; i<N+1; i++){
     for (int j=0; j<N+1; j++){
@@ -571,11 +597,11 @@ extern "C" void animate(void){
   project();
   extrapolate();
   move_particles();
-  double t2 = timestamp();
-  printf("Animate: %f\n",t2-t1);
   for (int i=0; i<N; i++)
     for (int j=0; j<N-1; j++)
       for (int k=0; k<N; k++)
         if (types[i][j][k]==FLUID || types[i][j+1][k]==FLUID)
           v[i][j+1][k] += dt * gy;
+  double t2 = timestamp();
+  printf("Animate: %f\n",t2-t1);
 }

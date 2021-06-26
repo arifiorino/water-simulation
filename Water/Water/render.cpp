@@ -7,10 +7,11 @@
 
 #include "render.h"
 
-#define split 3
+#define split 8
 bool level_set[N*split+1][N*split+1][N*split+1];
 int indices_size, vertices_size;
-std::unordered_map<int, int> vertex_to_index;
+//std::unordered_map<int, int> vertex_to_index;
+int vertex_to_index[N*split*2+1][N*split*2+1][N*split*2+1];
 std::vector<float> vertices, normals;
 std::vector<int> indices;
 std::mutex march_mutex;
@@ -99,12 +100,11 @@ int hash_vertex(int vertex[3]){
 }
 
 int add_vertex(int vertex[3]){
-  int h = hash_vertex(vertex);
+  //int h = hash_vertex(vertex);
   int index;
   march_mutex.lock();
-  try{
-    index = vertex_to_index.at(h);
-  }catch (const std::out_of_range& oor){
+  index = vertex_to_index[vertex[0]][vertex[1]][vertex[2]];
+  if (index==-1){
     vertices.push_back((float)vertex[0]/split/2.0);
     vertices.push_back((float)vertex[1]/split/2.0);
     vertices.push_back((float)vertex[2]/split/2.0);
@@ -112,7 +112,7 @@ int add_vertex(int vertex[3]){
     normals.push_back(0);
     normals.push_back(0);
     index = (int)(vertices.size()/3)-1;
-    vertex_to_index.insert({h, index});
+    vertex_to_index[vertex[0]][vertex[1]][vertex[2]] = index;
   }
   march_mutex.unlock();
   return index;
@@ -221,7 +221,10 @@ void marching_tetrahedra(void){
 }
 
 extern "C" void render(void){
-  vertex_to_index.clear();
+  for (int i=0; i<N*split*2+1; i++)
+    for (int j=0; j<N*split*2+1; j++)
+      for (int k=0; k<N*split*2+1; k++)
+        vertex_to_index[i][j][k]=-1;
   vertices.clear();
   normals.clear();
   indices.clear();
@@ -235,5 +238,4 @@ extern "C" void render(void){
   vertices_arr = vertices.data();
   normals_arr = normals.data();
   indices_arr = indices.data();
-  
 }
