@@ -16,6 +16,8 @@ struct Uniforms {
 }
 
 class ViewController: NSViewController, MTKViewDelegate {
+  var stopFrame: Int = 30*15
+  var frameI: Int = 0
   var time: Float = 0
   var commandQueue: MTLCommandQueue!
   var pipelineState: MTLRenderPipelineState!
@@ -24,6 +26,7 @@ class ViewController: NSViewController, MTKViewDelegate {
   var indicesBuffer: MTLBuffer!
   var device: MTLDevice!
   var depthStencilState: MTLDepthStencilState!
+  var metalVideoRecorder: MetalVideoRecorder!
     
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -51,8 +54,10 @@ class ViewController: NSViewController, MTKViewDelegate {
     depthStencilState = device.makeDepthStencilState(descriptor: depthStencilDescriptor)!
     mtkView.colorPixelFormat = .bgra8Unorm
     mtkView.depthStencilPixelFormat = .depth32Float
-    
-    
+    mtkView.framebufferOnly = false;
+    metalVideoRecorder = MetalVideoRecorder(outputURL: "/Users/arifiorino/Downloads/out.mov",
+                                            size: CGSize(width: 1600, height: 1600))
+    metalVideoRecorder.startRecording()
     init_animation()
   }
   
@@ -90,6 +95,17 @@ class ViewController: NSViewController, MTKViewDelegate {
     renderEncoder.drawIndexedPrimitives(type: .triangle, indexCount: Int(n_indices), indexType: MTLIndexType.uint32,
                                         indexBuffer: indicesBuffer, indexBufferOffset: 0)
     renderEncoder.endEncoding()
+    if (frameI<stopFrame){
+      let texture = (self.view as! MTKView).currentDrawable!.texture
+      commandBuffer.addCompletedHandler { commandBuffer in
+        self.metalVideoRecorder.writeFrame(forTexture: texture, frameI: self.frameI)
+      }
+      print("frame",frameI,"/",stopFrame)
+    }else if (frameI==stopFrame){
+      self.metalVideoRecorder.endRecording({});
+    }
+    frameI+=1;
+    
     commandBuffer.present(view.currentDrawable!)
     commandBuffer.commit()
     
