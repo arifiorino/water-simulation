@@ -12,7 +12,6 @@
 #define EMPTY 2
 int n_particles;
 particle_t *particles;
-particle_t *particles_hash[N][N][N];
 float u[N+1][N+1][N+1],  v[N+1][N+1][N+1],  w[N+1][N+1][N+1],
       u2[N+1][N+1][N+1], v2[N+1][N+1][N+1], w2[N+1][N+1][N+1];
 char types[N][N][N];

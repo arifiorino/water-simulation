@@ -20,6 +20,5 @@ typedef struct particle{
   struct particle *next;
 } particle_t;
 extern particle_t *particles;
-extern particle_t *particles_hash[N][N][N];
 
 #endif /* animate_h */

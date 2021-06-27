@@ -26,8 +26,6 @@ class MetalVideoRecorder {
         fatalError("couldn't delete")
       }
     }
-    
-    print("file exists",FileManager.default.fileExists(atPath: urlStr))
     do {
       assetWriter = try AVAssetWriter(url: url, fileType: AVFileType.m4v)
     } catch {
