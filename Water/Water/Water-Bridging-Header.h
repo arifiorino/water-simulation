@@ -7,4 +7,5 @@ float *vertices_arr, *normals_arr;
 int *indices_arr;
 void init_animation(void);
 void animate(void);
+void init_render(void);
 void render(void);

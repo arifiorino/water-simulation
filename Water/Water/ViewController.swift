@@ -59,6 +59,7 @@ class ViewController: NSViewController, MTKViewDelegate {
                                             size: CGSize(width: 1600, height: 1600))
     metalVideoRecorder.startRecording()
     init_animation()
+    init_render()
   }
   
   func draw(in view: MTKView) {
