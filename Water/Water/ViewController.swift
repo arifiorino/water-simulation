@@ -21,7 +21,7 @@ let split = 8;
 class ViewController: NSViewController, MTKViewDelegate {
   var stopFrame: Int = 30*15
   var frameI: Int = 0
-  var time: Float = 0
+  var angle: Float = 0
   var commandQueue: MTLCommandQueue!
   var pipelineState: MTLRenderPipelineState!
   var levelSet: MTLFunction!
@@ -158,6 +158,7 @@ class ViewController: NSViewController, MTKViewDelegate {
     //print("actual vertices", n_vertices)
     //print("actual indices", n_indices)
     let start = NSDate().timeIntervalSince1970
+    
     level_set = device.makeBuffer(length: 4*(N*split+1)*(N*split+1)*(N*split+1), options: MTLResourceOptions.storageModeShared)!
     particles_b.contents().copyMemory(from: particles_arr, byteCount: Int(n_particles) * 3 * 4)
     
@@ -198,20 +199,22 @@ class ViewController: NSViewController, MTKViewDelegate {
     commandBuffer.waitUntilCompleted()
     
     var y = unsafeBitCast(vertex_to_index.contents(), to: UnsafeMutablePointer<Int32>.self)
-    var y1 = Array(UnsafeBufferPointer(start: y, count: (N*split*2)*(N*split*2)*(N*split*2))) //*2
-    var z = unsafeBitCast(level_set.contents(), to: UnsafeMutablePointer<Int32>.self)
-    var z1 = Array(UnsafeBufferPointer(start: z, count: (N*split+1)*(N*split+1)*(N*split+1)))
+    //var y1 = Array(UnsafeBufferPointer(start: y, count: (N*split*2)*(N*split*2)*(N*split*2))) //*2
+    //var z = unsafeBitCast(level_set.contents(), to: UnsafeMutablePointer<Int32>.self)
+    //var z1 = Array(UnsafeBufferPointer(start: z, count: (N*split+1)*(N*split+1)*(N*split+1)))
     var w = unsafeBitCast(indices_scan.contents(), to: UnsafeMutablePointer<Int32>.self)
-    var w1 = Array(UnsafeBufferPointer(start: w, count: (N*split)*(N*split)*(N*split)))
+    //var w1 = Array(UnsafeBufferPointer(start: w, count: (N*split)*(N*split)*(N*split)))
     
-    var n_verts = Int(y1[133955070]); //HARDCODED!!!!
-    print("n_vertices",n_verts)
-    var n_idx = Int(w1[16777215]);
-    print("n_indices",n_idx)
+    var n_verts = Int(y[133955070]); //HARDCODED!!!!
+    //print("n_vertices",n_verts)
+    var n_idx = Int(w[16777215]);
+    //print("n_indices",n_idx)
+    
     
     vertexBuffer = device.makeBuffer(length: Int(n_verts) * 3 * 4, options: MTLResourceOptions.storageModeShared)!
     normalsBuffer = device.makeBuffer(length: Int(n_verts) * 3 * 4, options: MTLResourceOptions.storageModeShared)!
     indicesBuffer = device.makeBuffer(length: Int(n_idx) * 4, options: MTLResourceOptions.storageModeShared)!
+    
     
     commandBuffer = commandQueue.makeCommandBuffer(descriptor: desc)!
     
@@ -236,8 +239,7 @@ class ViewController: NSViewController, MTKViewDelegate {
     renderEncoder.setDepthStencilState(depthStencilState)
     renderEncoder.setRenderPipelineState(pipelineState)
     
-    time += 1 / 60.0 / 2.0
-    let angle = -time
+    angle -= 1 / 60.0 / 2
     let modelMatrix = float4x4(rotationAbout: SIMD3<Float>(0, 1, 0), by: angle) *  float4x4(scaleBy: 2)
 
     let viewMatrix = float4x4(translationBy: SIMD3<Float>(0, 0, -2))
@@ -255,7 +257,7 @@ class ViewController: NSViewController, MTKViewDelegate {
                                         indexBuffer: indicesBuffer, indexBufferOffset: 0)
     renderEncoder.endEncoding()
     
-    if (frameI<stopFrame){
+    /*if (frameI<stopFrame){
       let texture = (self.view as! MTKView).currentDrawable!.texture
       commandBuffer.addCompletedHandler { commandBuffer in
         self.metalVideoRecorder.writeFrame(forTexture: texture, frameI: self.frameI)
@@ -264,23 +266,23 @@ class ViewController: NSViewController, MTKViewDelegate {
     }else if (frameI==stopFrame){
       self.metalVideoRecorder.endRecording({});
     }
-    frameI+=1;
+    frameI+=1;*/
     commandBuffer.present(view.currentDrawable!)
     commandBuffer.commit()
     commandBuffer.waitUntilCompleted()
     
-    let v = unsafeBitCast(vertexBuffer.contents(), to: UnsafeMutablePointer<Int32>.self)
-    let v1 = Array(UnsafeBufferPointer(start: v, count: n_verts*3))
-    let n = unsafeBitCast(normalsBuffer.contents(), to: UnsafeMutablePointer<Int32>.self)
-    let n1 = Array(UnsafeBufferPointer(start: n, count: n_verts*3))
-    let i = unsafeBitCast(indicesBuffer.contents(), to: UnsafeMutablePointer<Int32>.self)
-    let i1 = Array(UnsafeBufferPointer(start: i, count: n_idx))
-    let x = unsafeBitCast(debug_arr.contents(), to: UnsafeMutablePointer<Int32>.self)
-    let x1 = Array(UnsafeBufferPointer(start: x, count: 100))
+    //let v = unsafeBitCast(vertexBuffer.contents(), to: UnsafeMutablePointer<Int32>.self)
+    //let v1 = Array(UnsafeBufferPointer(start: v, count: n_verts*3))
+    //let n = unsafeBitCast(normalsBuffer.contents(), to: UnsafeMutablePointer<Int32>.self)
+    //let n1 = Array(UnsafeBufferPointer(start: n, count: n_verts*3))
+    //let i = unsafeBitCast(indicesBuffer.contents(), to: UnsafeMutablePointer<Int32>.self)
+    //let i1 = Array(UnsafeBufferPointer(start: i, count: n_idx))
+    //let x = unsafeBitCast(debug_arr.contents(), to: UnsafeMutablePointer<Int32>.self)
+    //let x1 = Array(UnsafeBufferPointer(start: x, count: 100))
 
     //(x1 as NSArray).write(to: URL(fileURLWithPath: "/Users/arifiorino/Downloads/debug_arr.txt"), atomically: false)
     let end = NSDate().timeIntervalSince1970
-    print(end-start)
+    print("Render: ",end-start)
 
   }
   

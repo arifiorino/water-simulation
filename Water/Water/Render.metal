@@ -458,9 +458,6 @@ vertex Vertex vertexShader(const device int *vertexArray [[buffer(0)]],
   vertexIn.position = float4((float)vertexArray[vid*3]/N/split/2-0.5,
                              (float)vertexArray[vid*3+1]/N/split/2-0.5,
                              (float)vertexArray[vid*3+2]/N/split/2-0.5, 1);
-  int a = normalsArray[vid*3];
-  int b = normalsArray[vid*3+1];
-  int c = normalsArray[vid*3+2];
   vertexIn.worldNormal = normalize(float3((float)normalsArray[vid*3],
                                           (float)normalsArray[vid*3+1],
                                           (float)normalsArray[vid*3+2]));

@@ -95,9 +95,9 @@ extern "C" void init_animation(void){
             float dx=(d&1)*0.5+0.25;
             float dy=((d>>1)&1)*0.5+0.25;
             float dz=((d>>2)&1)*0.5+0.25;
-            particles[c].x= i+dx;//+(rand2()*0.5-0.25);
-            particles[c].y= j+dy;//+(rand2()*0.5-0.25);
-            particles[c].z= k+dz;//+(rand2()*0.5-0.25);
+            particles[c].x= i+dx+(rand2()*0.5-0.25);
+            particles[c].y= j+dy+(rand2()*0.5-0.25);
+            particles[c].z= k+dz+(rand2()*0.5-0.25);
             c++;
           }
         }
@@ -609,5 +609,5 @@ extern "C" void animate(void){
     particles_arr[i*3+2]=particles[i].z;
   }
   double t2 = timestamp();
-  //printf("Animate: %f\n",t2-t1);
+  printf("Animate: %f\n",t2-t1);
 }
