@@ -77,7 +77,6 @@
 				D43A29152679A30B00E0797D /* MathUtilities.swift */,
 				D4FA7DCD26617DB600A2342B /* ViewController.swift */,
 				D4FA7DDF26617F6400A2342B /* Render.metal */,
-				D4FA7DCF26617DB700A2342B /* Assets.xcassets */,
 				D4FA7DD126617DB700A2342B /* Main.storyboard */,
 				D4FA7DDC26617E6300A2342B /* animate.h */,
 				D4FA7DDD26617E6300A2342B /* animate.cpp */,
@@ -90,6 +89,7 @@
 				D4FA7DD426617DB700A2342B /* Info.plist */,
 				D4FA7DD526617DB700A2342B /* Water.entitlements */,
 				D4FA7DDB26617E6300A2342B /* Water-Bridging-Header.h */,
+				D4FA7DCF26617DB700A2342B /* Assets.xcassets */,
 			);
 			path = Water;
 			sourceTree = "<group>";

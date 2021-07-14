@@ -12,6 +12,7 @@
 #define EMPTY 2
 int n_particles;
 particle_t *particles;
+float *particles_arr;
 float u[N+1][N+1][N+1],  v[N+1][N+1][N+1],  w[N+1][N+1][N+1],
       u2[N+1][N+1][N+1], v2[N+1][N+1][N+1], w2[N+1][N+1][N+1];
 char types[N][N][N];
@@ -84,6 +85,7 @@ extern "C" void init_animation(void){
   }
   config1();
   particles = (particle_t*)malloc(n_particles*sizeof(particle_t));
+  particles_arr = (float*)malloc(3*n_particles*sizeof(float));
   int c = 0;
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
@@ -93,9 +95,9 @@ extern "C" void init_animation(void){
             float dx=(d&1)*0.5+0.25;
             float dy=((d>>1)&1)*0.5+0.25;
             float dz=((d>>2)&1)*0.5+0.25;
-            particles[c].x= i+dx+(rand2()*0.5-0.25);
-            particles[c].y= j+dy+(rand2()*0.5-0.25);
-            particles[c].z= k+dz+(rand2()*0.5-0.25);
+            particles[c].x= i+dx;//+(rand2()*0.5-0.25);
+            particles[c].y= j+dy;//+(rand2()*0.5-0.25);
+            particles[c].z= k+dz;//+(rand2()*0.5-0.25);
             c++;
           }
         }
@@ -601,6 +603,11 @@ extern "C" void animate(void){
       for (int k=0; k<N; k++)
         if (types[i][j][k]==FLUID || types[i][j+1][k]==FLUID)
           v[i][j+1][k] += dt * gy;
+  for (int i=0; i<n_particles; i++){
+    particles_arr[i*3]=particles[i].x;
+    particles_arr[i*3+1]=particles[i].y;
+    particles_arr[i*3+2]=particles[i].z;
+  }
   double t2 = timestamp();
-  printf("Animate: %f\n",t2-t1);
+  //printf("Animate: %f\n",t2-t1);
 }

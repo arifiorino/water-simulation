@@ -23,7 +23,7 @@ class MetalVideoRecorder {
       do{
         try FileManager.default.removeItem(at: url)
       }catch{
-        fatalError("couldn't delete")
+        return nil
       }
     }
     do {
@@ -53,8 +53,7 @@ class MetalVideoRecorder {
   }
   
   func startRecording() {
-    let x = assetWriter.startWriting()
-    print("succeeded:",x)
+    assetWriter.startWriting()
     assetWriter.startSession(atSourceTime: CMTime.zero)
     recordingStartTime = CACurrentMediaTime()
     isRecording = true

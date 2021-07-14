@@ -191,7 +191,7 @@ extern "C" void init_render(void){
   for (int di=-split; di<=split; di++){
     for (int dj=-split; dj<=split; dj++){
       for (int dk=-split; dk<=split; dk++){
-        if (di*di+dj*dj+dk*dk <= split*split){
+        if (di*di+dj*dj+dk*dk < split*split){
           sphere.push_back(di);
           sphere.push_back(dj);
           sphere.push_back(dk);
@@ -204,6 +204,17 @@ extern "C" void init_render(void){
 extern "C" void render(void){
   double t1 = timestamp();
   calculate_level_set();
+  /*int curr = 0;
+  for (int k=0; k<N*split+1; k++){
+    for (int j=0; j<N*split+1; j++){
+      for (int i=0; i<N*split+1; i++){
+        if (level_set[i][j][k] > 80000){
+          curr ++;
+        }
+      }
+    }
+  }
+  printf("level_check %d\n",curr);*/
   double t2 = timestamp();
   vertices.clear();
   normals.clear();
@@ -217,5 +228,5 @@ extern "C" void render(void){
   normals_arr = normals.data();
   indices_arr = indices.data();
   double t5 = timestamp();
-  printf("Render:  %f %f %f %f\n",t2-t1,t3-t2,t4-t3,t5-t4);
+  //printf("Render:  %f %f %f %f\n",t2-t1,t3-t2,t4-t3,t5-t4);
 }
