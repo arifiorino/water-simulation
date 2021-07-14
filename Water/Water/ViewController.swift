@@ -157,10 +157,9 @@ class ViewController: NSViewController, MTKViewDelegate {
     //render()
     //print("actual vertices", n_vertices)
     //print("actual indices", n_indices)
-    
-    particles_b.contents().copyMemory(from: particles_arr, byteCount: Int(n_particles) * 3 * 4)
-    
     let start = NSDate().timeIntervalSince1970
+    level_set = device.makeBuffer(length: 4*(N*split+1)*(N*split+1)*(N*split+1), options: MTLResourceOptions.storageModeShared)!
+    particles_b.contents().copyMemory(from: particles_arr, byteCount: Int(n_particles) * 3 * 4)
     
     let desc = MTLCommandBufferDescriptor()
     desc.errorOptions = .encoderExecutionStatus
@@ -197,9 +196,6 @@ class ViewController: NSViewController, MTKViewDelegate {
 
     commandBuffer.commit()
     commandBuffer.waitUntilCompleted()
-    
-    let end = NSDate().timeIntervalSince1970
-    print(end-start)
     
     var y = unsafeBitCast(vertex_to_index.contents(), to: UnsafeMutablePointer<Int32>.self)
     var y1 = Array(UnsafeBufferPointer(start: y, count: (N*split*2)*(N*split*2)*(N*split*2))) //*2
@@ -254,7 +250,7 @@ class ViewController: NSViewController, MTKViewDelegate {
     renderEncoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 2)
 
     renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
-    renderEncoder.setVertexBuffer(normalsBuffer, offset: 0, index: 1)//Int(n_idx)
+    renderEncoder.setVertexBuffer(normalsBuffer, offset: 0, index: 1)
     renderEncoder.drawIndexedPrimitives(type: .triangle, indexCount: n_idx, indexType: MTLIndexType.uint32,
                                         indexBuffer: indicesBuffer, indexBufferOffset: 0)
     renderEncoder.endEncoding()
@@ -282,9 +278,9 @@ class ViewController: NSViewController, MTKViewDelegate {
     let x = unsafeBitCast(debug_arr.contents(), to: UnsafeMutablePointer<Int32>.self)
     let x1 = Array(UnsafeBufferPointer(start: x, count: 100))
 
-    print("start")
     //(x1 as NSArray).write(to: URL(fileURLWithPath: "/Users/arifiorino/Downloads/debug_arr.txt"), atomically: false)
-    print("end")
+    let end = NSDate().timeIntervalSince1970
+    print(end-start)
 
   }
   
