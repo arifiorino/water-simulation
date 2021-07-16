@@ -15,9 +15,7 @@ using namespace metal;
 #define sphereN 2103
 #define metaballsCutoff 80000
 
-//ORGANIZATION!!!!!!
-
-void scan_2(threadgroup int* A, threadgroup int* B, int j, constant int *powLookup){
+void double_scan(threadgroup int* A, threadgroup int* B, int j, constant int *powLookup){
   threadgroup_barrier(mem_flags::mem_threadgroup);
   int x = 0;
   int y = 0;
@@ -49,17 +47,17 @@ int cube_to_tetrahedron_idx(int a, int b, int c, int d){
   return d + c*3 + b*3*4 + a*3*4*5;
 }
 
-inline int metaballs(float3 a, float3 b){
+int metaballs(float3 a, float3 b){
   float s2 = distance_squared(a, b);
   if (s2 < 1)
     return (int)((1-s2)*(1-s2)*(1-s2)*100000);
   return 0;
 }
 
-kernel void calc_level_set(device float* particles [[buffer(0)]],
-                           device atomic_int* level_set [[buffer(1)]],
-                           constant int* sphere [[buffer(2)]],
-                           uint3 pos [[thread_position_in_grid]]){
+kernel void calc_level_set(uint3 pos [[thread_position_in_grid]],
+                           device atomic_int* level_set [[buffer(0)]],
+                           device float* particles [[buffer(1)]],
+                           constant int* sphere [[buffer(2)]]){
   int idx = pos.x;
   float3 particle = float3(particles[idx*3],particles[idx*3+1],particles[idx*3+2]);
   int3 center = int3(particle*split);
@@ -77,7 +75,7 @@ kernel void calc_level_set(device float* particles [[buffer(0)]],
   }
 }
 
-void add_vertex(int3 v, int3 c, device int *vertex_to_index, thread int *n_vertices){
+void add_vertex_1(int3 v, int3 c, thread int *n_vertices, device int *vertex_to_index){
   if (all(c == v / 2)){
     int vi = vertex_idx(v);
     if (vertex_to_index[vi]==-1){
@@ -87,26 +85,22 @@ void add_vertex(int3 v, int3 c, device int *vertex_to_index, thread int *n_verti
   }
 }
 
-void add_triangle(int3 triangle[3], int3 c, device int *vertex_to_index, thread int *n_vertices,
-                         thread int *n_indices){
-  add_vertex(triangle[0], c, vertex_to_index, n_vertices);
-  add_vertex(triangle[1], c, vertex_to_index, n_vertices);
-  add_vertex(triangle[2], c, vertex_to_index, n_vertices);
+void add_triangle_1(int3 triangle[3], int3 c,
+                    thread int *n_vertices, thread int *n_indices,device int *vertex_to_index){
+  add_vertex_1(triangle[0], c, n_vertices, vertex_to_index);
+  add_vertex_1(triangle[1], c, n_vertices, vertex_to_index);
+  add_vertex_1(triangle[2], c, n_vertices, vertex_to_index);
   *n_indices+=3;
 }
 
-void add_tetrahedron(int3 tetrahedron[4],
-                            int3 c,
-                            device int *level_set,
-                            constant int *tetrahedron_to_triangles,
-                            device int *vertex_to_index,
-                            thread int *n_vertices,
-                            thread int *n_indices){
+void add_tetrahedron_1(int3 tetrahedron[4], int3 c,
+                       thread int *n_vertices, thread int *n_indices,
+                       device int *level_set, device int *vertex_to_index,
+                       constant int *tetrahedron_to_triangles){
   int4 a = int4(level_set[level_set_idx(tetrahedron[0])], level_set[level_set_idx(tetrahedron[1])],
                 level_set[level_set_idx(tetrahedron[2])], level_set[level_set_idx(tetrahedron[3])]);
   bool4 b = a > metaballsCutoff;
   int tetrahedron_idx = ((int)b.x) + ((int)b.y<<1) + ((int)b.z<<2) + ((int)b.w<<3);
-  
   for (int triangle_i=0; triangle_i<12 && tetrahedron_to_triangles[tetrahedron_idx*12 + triangle_i]!=-1; triangle_i+=6){
     int3 triangle[3];
     for (int t = 0; t < 3; t++){
@@ -114,21 +108,21 @@ void add_tetrahedron(int3 tetrahedron[4],
       char p1 = tetrahedron_to_triangles[tetrahedron_idx*12 + triangle_i + t*2+1];
       triangle[t] = tetrahedron[p0] + tetrahedron[p1];
     }
-    add_triangle(triangle, c, vertex_to_index, n_vertices, n_indices);
+    add_triangle_1(triangle, c, n_vertices, n_indices, vertex_to_index);
   }
 }
 
 //Threadgroup: 32kb
-kernel void add_cube(threadgroup int* tg_scan [[threadgroup(0)]],
-                     threadgroup int* tg_scan_2 [[threadgroup(1)]],
-                     uint3 thread_position_in_grid [[thread_position_in_grid]],
-                     device int* level_set [[buffer(0)]],
-                     device int* vertex_to_index[[buffer(1)]],
-                     constant int* tetrahedron_to_triangles[[buffer(2)]],
-                     constant int* cube_to_tetrahedron[[buffer(3)]],
-                     constant int* pow_lookup[[buffer(4)]],
-                     device int* indices_scan[[buffer(5)]]){
-  int3 c = (int3)thread_position_in_grid;
+kernel void add_cube_1(uint3 pos [[thread_position_in_grid]],
+                       threadgroup int* tg_A [[threadgroup(0)]],
+                       threadgroup int* tg_B [[threadgroup(1)]],
+                       device int* level_set [[buffer(0)]],
+                       device int* vertex_to_index[[buffer(1)]],
+                       device int* indices_scan[[buffer(2)]],
+                       constant int* cube_to_tetrahedron[[buffer(3)]],
+                       constant int* tetrahedron_to_triangles[[buffer(4)]],
+                       constant int* pow_lookup[[buffer(5)]]){
+  int3 c = (int3)pos;
   int n_vertices=0;
   int n_indices=0;
   for (int di=0; di<2; di++)
@@ -142,15 +136,16 @@ kernel void add_cube(threadgroup int* tg_scan [[threadgroup(0)]],
       int idx = cube_to_tetrahedron_idx((c[0]+c[1]+c[2])%2,tetrahedron_i,i,0);
       tetrahedron[i] = c + int3(cube_to_tetrahedron[idx], cube_to_tetrahedron[idx+1], cube_to_tetrahedron[idx+2]);
     }
-    add_tetrahedron(tetrahedron, c, level_set, tetrahedron_to_triangles, vertex_to_index, &n_vertices, &n_indices);
+    add_tetrahedron_1(tetrahedron, c, &n_vertices, &n_indices,
+                      level_set, vertex_to_index, tetrahedron_to_triangles);
   }
   int3 g = c % 8;
   int idx = g.x + g.y*8 + g.z*64;
-  tg_scan[idx]=n_vertices;
-  tg_scan_2[idx]=n_indices;
-  scan_2(tg_scan, tg_scan_2, idx, pow_lookup);
-  vertex_to_index[vertex_idx(c * 2)]=tg_scan[idx];
-  indices_scan[cube_idx(c)] = tg_scan_2[idx];
+  tg_A[idx]=n_vertices;
+  tg_B[idx]=n_indices;
+  double_scan(tg_A, tg_B, idx, pow_lookup);
+  vertex_to_index[vertex_idx(c * 2)]=tg_A[idx];
+  indices_scan[cube_idx(c)] = tg_B[idx];
 }
 
 
@@ -181,7 +176,6 @@ kernel void globalScan(device int* vertex_to_index[[buffer(0)]],
 }
 
 //PASS 2!!!!!!!!!
-
 
 int get_vertex_idx(int3 v, device int* vertex_to_index){
   int3 c = v / 2;
@@ -231,8 +225,8 @@ int3 cross_prod(int3 a, int3 b){
               a.x * b.y - a.y * b.x);
 }
 
-int add_vertex_2(int3 v, int3 c, device int* vertex_to_index,
-                 device int* vertices){
+int add_vertex_2(int3 v, int3 c,
+                 device int* vertices, device int* vertex_to_index){
   int idx = get_vertex_idx(v, vertex_to_index);
   if (all(c == v / 2)){ //It is your vertex
     vertices[idx*3  ]=v.x;
@@ -242,39 +236,31 @@ int add_vertex_2(int3 v, int3 c, device int* vertex_to_index,
   return idx;
 }
 
-void add_triangle_2(int3 triangle[3], device int *vertex_to_index,
+void add_triangle_2(int3 triangle[3], int3 c,
+                    thread int *index_idx,
+                    device int *vertex_to_index,
                     device int *vertices,
                     device atomic_int *normals,
-                    device int *indices,
-                    thread int *index_idx, int3 c){
-  int index1 = add_vertex_2(triangle[0], c, vertex_to_index, vertices);
-  int index2 = add_vertex_2(triangle[1], c, vertex_to_index, vertices);
-  int index3 = add_vertex_2(triangle[2], c, vertex_to_index, vertices);
-  indices[*index_idx] = index1;
-  indices[*index_idx + 1] = index2;
-  indices[*index_idx + 2] = index3;
+                    device int *indices){
+  int3 normal = cross_prod(triangle[1]-triangle[0], triangle[2]-triangle[1]);
+  for (int i=0; i<3; i++){
+    int index = add_vertex_2(triangle[i], c, vertices, vertex_to_index);
+    indices[*index_idx + i] = index;
+    atomic_fetch_add_explicit(normals+index*3  , normal.x, memory_order_relaxed);
+    atomic_fetch_add_explicit(normals+index*3+1, normal.y, memory_order_relaxed);
+    atomic_fetch_add_explicit(normals+index*3+2, normal.z, memory_order_relaxed);
+  }
   *index_idx+=3;
-  int3 n = cross_prod(triangle[1]-triangle[0], triangle[2]-triangle[1]);
-  atomic_fetch_add_explicit(normals+index1*3  , n.x, memory_order_relaxed);
-  atomic_fetch_add_explicit(normals+index1*3+1, n.y, memory_order_relaxed);
-  atomic_fetch_add_explicit(normals+index1*3+2, n.z, memory_order_relaxed);
-  atomic_fetch_add_explicit(normals+index2*3  , n.x, memory_order_relaxed);
-  atomic_fetch_add_explicit(normals+index2*3+1, n.y, memory_order_relaxed);
-  atomic_fetch_add_explicit(normals+index2*3+2, n.z, memory_order_relaxed);
-  atomic_fetch_add_explicit(normals+index3*3  , n.x, memory_order_relaxed);
-  atomic_fetch_add_explicit(normals+index3*3+1, n.y, memory_order_relaxed);
-  atomic_fetch_add_explicit(normals+index3*3+2, n.z, memory_order_relaxed);
 }
 
-void add_tetrahedron_2(int3 tetrahedron[4],
+void add_tetrahedron_2(int3 tetrahedron[4], int3 c,
+                       thread int *index_idx,
                        device int *level_set,
-                       constant int *tetrahedron_to_triangles,
                        device int *vertex_to_index,
                        device int *vertices,
                        device atomic_int *normals,
                        device int *indices,
-                       thread int *index_idx,
-                       int3 c){
+                       constant int *tetrahedron_to_triangles){
   int4 a = int4(level_set[level_set_idx(tetrahedron[0])], level_set[level_set_idx(tetrahedron[1])],
                 level_set[level_set_idx(tetrahedron[2])], level_set[level_set_idx(tetrahedron[3])]);
   bool4 b = a > metaballsCutoff;
@@ -286,19 +272,19 @@ void add_tetrahedron_2(int3 tetrahedron[4],
       char p1 = tetrahedron_to_triangles[tetrahedron_idx*12+triangle_i + t*2+1];
       triangle[t] = tetrahedron[p0] + tetrahedron[p1];
     }
-    add_triangle_2(triangle, vertex_to_index, vertices, normals, indices, index_idx,c);
+    add_triangle_2(triangle, c, index_idx, vertex_to_index, vertices, normals, indices);
   }
 }
 
 kernel void add_cube_2(uint3 thread_position_in_grid [[thread_position_in_grid]],
-                       device int* level_set[[buffer(0)]],
-                       device int* vertex_to_index[[buffer(1)]],
-                       device int* indices_scan [[buffer(2)]],
-                       constant int* tetrahedron_to_triangles[[buffer(3)]],
-                       constant int* cube_to_tetrahedron[[buffer(4)]],
-                       device int* vertices [[buffer(5)]],
-                       device atomic_int* normals [[buffer(6)]],
-                       device int* indices [[buffer(7)]]){
+                       device int* vertices [[buffer(0)]],
+                       device atomic_int* normals [[buffer(1)]],
+                       device int* indices [[buffer(2)]],
+                       device int* level_set[[buffer(3)]],
+                       device int* vertex_to_index[[buffer(4)]],
+                       device int* indices_scan [[buffer(5)]],
+                       constant int* cube_to_tetrahedron[[buffer(6)]],
+                       constant int* tetrahedron_to_triangles[[buffer(7)]]){
   int3 c = (int3)thread_position_in_grid;
   int index_idx = get_indices_idx(c,indices_scan);
   for (int tetrahedron_i = 0; tetrahedron_i<5; tetrahedron_i++){
@@ -310,8 +296,8 @@ kernel void add_cube_2(uint3 thread_position_in_grid [[thread_position_in_grid]]
       tetrahedron[i].z=cube_to_tetrahedron[idx+2];
       tetrahedron[i]+=c;
     }
-    add_tetrahedron_2(tetrahedron, level_set, tetrahedron_to_triangles, vertex_to_index,
-                      vertices, normals, indices, &index_idx, c);
+    add_tetrahedron_2(tetrahedron, c, &index_idx, level_set, vertex_to_index,
+                      vertices, normals, indices, tetrahedron_to_triangles);
   }
 }
 
@@ -329,18 +315,15 @@ struct Uniforms {
     float3x3 normalMatrix;
 };
 
-vertex Vertex vertexShader(const device int *vertexArray [[buffer(0)]],
+vertex Vertex vertexShader(unsigned int vid [[vertex_id]],
+                           const device int *vertexArray [[buffer(0)]],
                            const device int *normalsArray [[buffer(1)]],
-                           constant Uniforms &uniforms [[buffer(2)]],
-                           unsigned int vid [[vertex_id]]){
+                           constant Uniforms &uniforms [[buffer(2)]]){
   Vertex vertexIn;
-  vertexIn.position = float4((float)vertexArray[vid*3]/N/split/2-0.5,
-                             (float)vertexArray[vid*3+1]/N/split/2-0.5,
-                             (float)vertexArray[vid*3+2]/N/split/2-0.5, 1);
-  vertexIn.worldNormal = normalize(float3((float)normalsArray[vid*3],
-                                          (float)normalsArray[vid*3+1],
-                                          (float)normalsArray[vid*3+2]));
-  
+  float3 pos = float3(vertexArray[vid*3], vertexArray[vid*3+1], vertexArray[vid*3+2]);
+  pos = pos/N/split/2 - 0.5;
+  vertexIn.position = float4(pos, 1);
+  vertexIn.worldNormal = normalize(float3(normalsArray[vid*3], normalsArray[vid*3+1], normalsArray[vid*3+2]));
   float4 worldPosition = uniforms.modelMatrix * vertexIn.position;
   Vertex vertexOut;
   vertexOut.position = uniforms.viewProjectionMatrix * worldPosition;
@@ -350,7 +333,7 @@ vertex Vertex vertexShader(const device int *vertexArray [[buffer(0)]],
 }
 
 constant float3 ambientIntensity = 0.3;
-constant float3 lightPosition(2, 2, 2); // Light position in world space
+constant float3 lightPosition(2, 2, 2);
 constant float3 lightColor(1, 1, 1);
 constant float3 baseColor(0, 0, 1.0);
 

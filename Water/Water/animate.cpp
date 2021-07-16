@@ -11,7 +11,7 @@
 #define FLUID 1
 #define EMPTY 2
 int n_particles;
-float *particles;
+float *particles_arr;
 float u[N+1][N+1][N+1],  v[N+1][N+1][N+1],  w[N+1][N+1][N+1],
       u2[N+1][N+1][N+1], v2[N+1][N+1][N+1], w2[N+1][N+1][N+1];
 char types[N][N][N];
@@ -88,7 +88,7 @@ extern "C" void init_animation(void){
     }
   }
   config1();
-  particles = (float*)malloc(3*n_particles*sizeof(float));
+  particles_arr = (float*)malloc(3*n_particles*sizeof(float));
   int c = 0;
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
@@ -98,9 +98,9 @@ extern "C" void init_animation(void){
             float dx=(d&1)*0.5+0.25;
             float dy=((d>>1)&1)*0.5+0.25;
             float dz=((d>>2)&1)*0.5+0.25;
-            particles[c*3]= i+dx+(rand2()*0.5-0.25);
-            particles[c*3+1]= j+dy+(rand2()*0.5-0.25);
-            particles[c*3+2]= k+dz+(rand2()*0.5-0.25);
+            particles_arr[c*3]= i+dx+(rand2()*0.5-0.25);
+            particles_arr[c*3+1]= j+dy+(rand2()*0.5-0.25);
+            particles_arr[c*3+2]= k+dz+(rand2()*0.5-0.25);
             c++;
           }
         }
@@ -585,11 +585,11 @@ void move_particles(void){
           types[i][j][k]=EMPTY;
   for (int idx=0; idx<n_particles; idx++){
     float newX, newY, newZ;
-    RK2(particles[idx*3],particles[idx*3+1],particles[idx*3+2],&newX,&newY,&newZ,1);
+    RK2(particles_arr[idx*3],particles_arr[idx*3+1],particles_arr[idx*3+2],&newX,&newY,&newZ,1);
     if (types[(int)newX][(int)newY][(int)newZ]!=SOLID){
-      particles[idx*3]=newX;
-      particles[idx*3+1]=newY;
-      particles[idx*3+2]=newZ;
+      particles_arr[idx*3]=newX;
+      particles_arr[idx*3+1]=newY;
+      particles_arr[idx*3+2]=newZ;
       types[(int)newX][(int)newY][(int)newZ]=FLUID;
     }
   }

@@ -24,8 +24,5 @@ void **malloc2D(int w, int h, int s);
 void free2D(void **p, int w);
 double rand2(void);
 double timestamp(void);
-void cross_prod(float ax, float ay, float az, float bx, float by, float bz,
-                float *sx, float *sy, float *sz);
-void parallel_for(int n, std::function<void (int start, int end)> functor);
 
 #endif /* utils_h */
