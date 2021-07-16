@@ -9,6 +9,8 @@ import Cocoa
 import Metal
 import MetalKit
 
+//ORGANIZATION!!!!!!
+
 struct Uniforms {
     var modelMatrix: float4x4
     var viewProjectionMatrix: float4x4
@@ -19,7 +21,7 @@ let N = 32;
 let split = 8;
 
 class ViewController: NSViewController, MTKViewDelegate {
-  var stopFrame: Int = 30*15
+  var stopFrame: Int = 30*20
   var frameI: Int = 0
   var angle: Float = 0
   var commandQueue: MTLCommandQueue!
@@ -42,7 +44,6 @@ class ViewController: NSViewController, MTKViewDelegate {
   var sphere_b: MTLBuffer!
   var tetrahedron_to_triangles: MTLBuffer!
   var cube_to_tetrahedron: MTLBuffer!
-  var debug_arr: MTLBuffer!
   var indices_scan: MTLBuffer!
   var device: MTLDevice!
   var depthStencilState: MTLDepthStencilState!
@@ -93,12 +94,11 @@ class ViewController: NSViewController, MTKViewDelegate {
                                             size: CGSize(width: 1600, height: 1600))
     metalVideoRecorder.startRecording()
     init_animation()
-    init_render()
     
     var sphere: [Int32]! = []
-    for di in -split...split{
-      for dj in -split...split{
-        for dk in -split...split{
+    for dj in -split...split{
+      for dk in -split...split{
+        for di in -split...split{
           if (di*di+dj*dj+dk*dk < split*split){
             sphere.append(Int32(di))
             sphere.append(Int32(dj))
@@ -107,7 +107,6 @@ class ViewController: NSViewController, MTKViewDelegate {
         }
       }
     }
-    debug_arr = device.makeBuffer(length: 4*100, options: MTLResourceOptions.storageModeShared)!
     indices_scan = device.makeBuffer(length: 4*(N*split)*(N*split)*(N*split), options: MTLResourceOptions.storageModeShared)!
     
     particles_b = device.makeBuffer(length: Int(n_particles) * 3 * 4, options: MTLResourceOptions.storageModeShared)!
@@ -154,13 +153,10 @@ class ViewController: NSViewController, MTKViewDelegate {
   
   func draw(in view: MTKView) {
     animate()
-    //render()
-    //print("actual vertices", n_vertices)
-    //print("actual indices", n_indices)
     let start = NSDate().timeIntervalSince1970
     
     level_set = device.makeBuffer(length: 4*(N*split+1)*(N*split+1)*(N*split+1), options: MTLResourceOptions.storageModeShared)!
-    particles_b.contents().copyMemory(from: particles_arr, byteCount: Int(n_particles) * 3 * 4)
+    particles_b.contents().copyMemory(from: particles, byteCount: Int(n_particles) * 3 * 4)
     
     let desc = MTLCommandBufferDescriptor()
     desc.errorOptions = .encoderExecutionStatus
@@ -180,9 +176,8 @@ class ViewController: NSViewController, MTKViewDelegate {
     computeEncoder.setBuffer(vertex_to_index, offset: 0, index: 1)
     computeEncoder.setBuffer(tetrahedron_to_triangles, offset: 0, index: 2)
     computeEncoder.setBuffer(cube_to_tetrahedron, offset: 0, index: 3)
-    computeEncoder.setBuffer(debug_arr, offset: 0, index: 4)
-    computeEncoder.setBuffer(pow_lookup, offset: 0, index: 5)
-    computeEncoder.setBuffer(indices_scan, offset: 0, index: 6)
+    computeEncoder.setBuffer(pow_lookup, offset: 0, index: 4)
+    computeEncoder.setBuffer(indices_scan, offset: 0, index: 5)
     computeEncoder.setThreadgroupMemoryLength(4*512, index: 0)
     computeEncoder.setThreadgroupMemoryLength(4*512, index: 1)
     computeEncoder.dispatchThreads(MTLSizeMake(N*split, N*split, N*split), threadsPerThreadgroup: MTLSizeMake(8,8,8))
@@ -198,16 +193,17 @@ class ViewController: NSViewController, MTKViewDelegate {
     commandBuffer.commit()
     commandBuffer.waitUntilCompleted()
     
-    var y = unsafeBitCast(vertex_to_index.contents(), to: UnsafeMutablePointer<Int32>.self)
-    //var y1 = Array(UnsafeBufferPointer(start: y, count: (N*split*2)*(N*split*2)*(N*split*2))) //*2
+    
+    let y = vertex_to_index.contents().assumingMemoryBound(to: Int32.self)
+    //var y1 = Array(UnsafeBufferPointer(start: y, count: (N*split*2)*(N*split*2)*(N*split*2))) // *2
     //var z = unsafeBitCast(level_set.contents(), to: UnsafeMutablePointer<Int32>.self)
     //var z1 = Array(UnsafeBufferPointer(start: z, count: (N*split+1)*(N*split+1)*(N*split+1)))
-    var w = unsafeBitCast(indices_scan.contents(), to: UnsafeMutablePointer<Int32>.self)
+    let w = indices_scan.contents().assumingMemoryBound(to: Int32.self)
     //var w1 = Array(UnsafeBufferPointer(start: w, count: (N*split)*(N*split)*(N*split)))
     
-    var n_verts = Int(y[133955070]); //HARDCODED!!!!
+    let n_verts = Int(y[133955070]); //HARDCODED!!!!
     //print("n_vertices",n_verts)
-    var n_idx = Int(w[16777215]);
+    let n_idx = Int(w[16777215]);
     //print("n_indices",n_idx)
     
     
@@ -228,7 +224,6 @@ class ViewController: NSViewController, MTKViewDelegate {
     computeEncoder.setBuffer(vertexBuffer, offset: 0, index: 5)
     computeEncoder.setBuffer(normalsBuffer, offset: 0, index: 6)
     computeEncoder.setBuffer(indicesBuffer, offset: 0, index: 7)
-    computeEncoder.setBuffer(debug_arr, offset: 0, index: 8)
     
     computeEncoder.dispatchThreads(MTLSizeMake(N*split, N*split, N*split), threadsPerThreadgroup: MTLSizeMake(1,1,1))
     computeEncoder.endEncoding()

@@ -11,8 +11,7 @@
 #define FLUID 1
 #define EMPTY 2
 int n_particles;
-particle_t *particles;
-float *particles_arr;
+float *particles;
 float u[N+1][N+1][N+1],  v[N+1][N+1][N+1],  w[N+1][N+1][N+1],
       u2[N+1][N+1][N+1], v2[N+1][N+1][N+1], w2[N+1][N+1][N+1];
 char types[N][N][N];
@@ -20,7 +19,7 @@ int d[N+1][N+1][N+1];
 int fluid_cells_idx[N][N][N];
 float dt = 0.2;
 float gy = -0.4f;
-
+// Dam break
 void config1(void){
   n_particles = 0;
   for (int i=1; i<N/2; i++){
@@ -32,17 +31,9 @@ void config1(void){
     }
   }
 }
-
+// Water droplet on floor
 void config2(void){
   n_particles = 0;
-  /*for (int i=1; i<N-1; i++){
-    for (int j=1; j<N/10; j++){
-      for (int k=1; k<N-1; k++){
-        types[i][j][k]=FLUID;
-        n_particles+=8;
-      }
-    }
-  }*/
   int cx=N/2;
   int cy=3*N/4;
   int cz=N/2;
@@ -58,7 +49,20 @@ void config2(void){
     }
   }
 }
-
+// Double dam break
+void config3(void){
+  n_particles = 0;
+  for (int i=1; i<N-1; i++){
+    for (int j=1; j<N/2; j++){
+      for (int k=1; k<N/4; k++){
+        types[i][j][k]=FLUID;
+        n_particles+=8;
+        types[i][j][N-1-k]=FLUID;
+        n_particles+=8;
+      }
+    }
+  }
+}
 extern "C" void init_animation(void){
   for (int i=0; i<N+1; i++){
     for (int j=0; j<N+1; j++){
@@ -84,8 +88,7 @@ extern "C" void init_animation(void){
     }
   }
   config1();
-  particles = (particle_t*)malloc(n_particles*sizeof(particle_t));
-  particles_arr = (float*)malloc(3*n_particles*sizeof(float));
+  particles = (float*)malloc(3*n_particles*sizeof(float));
   int c = 0;
   for (int i=0; i<N; i++){
     for (int j=0; j<N; j++){
@@ -95,9 +98,9 @@ extern "C" void init_animation(void){
             float dx=(d&1)*0.5+0.25;
             float dy=((d>>1)&1)*0.5+0.25;
             float dz=((d>>2)&1)*0.5+0.25;
-            particles[c].x= i+dx+(rand2()*0.5-0.25);
-            particles[c].y= j+dy+(rand2()*0.5-0.25);
-            particles[c].z= k+dz+(rand2()*0.5-0.25);
+            particles[c*3]= i+dx+(rand2()*0.5-0.25);
+            particles[c*3+1]= j+dy+(rand2()*0.5-0.25);
+            particles[c*3+2]= k+dz+(rand2()*0.5-0.25);
             c++;
           }
         }
@@ -582,11 +585,11 @@ void move_particles(void){
           types[i][j][k]=EMPTY;
   for (int idx=0; idx<n_particles; idx++){
     float newX, newY, newZ;
-    RK2(particles[idx].x,particles[idx].y,particles[idx].z,&newX,&newY,&newZ,1);
+    RK2(particles[idx*3],particles[idx*3+1],particles[idx*3+2],&newX,&newY,&newZ,1);
     if (types[(int)newX][(int)newY][(int)newZ]!=SOLID){
-      particles[idx].x=newX;
-      particles[idx].y=newY;
-      particles[idx].z=newZ;
+      particles[idx*3]=newX;
+      particles[idx*3+1]=newY;
+      particles[idx*3+2]=newZ;
       types[(int)newX][(int)newY][(int)newZ]=FLUID;
     }
   }
@@ -603,11 +606,6 @@ extern "C" void animate(void){
       for (int k=0; k<N; k++)
         if (types[i][j][k]==FLUID || types[i][j+1][k]==FLUID)
           v[i][j+1][k] += dt * gy;
-  for (int i=0; i<n_particles; i++){
-    particles_arr[i*3]=particles[i].x;
-    particles_arr[i*3+1]=particles[i].y;
-    particles_arr[i*3+2]=particles[i].z;
-  }
   double t2 = timestamp();
   printf("Animate: %f\n",t2-t1);
 }

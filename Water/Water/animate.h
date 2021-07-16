@@ -13,12 +13,5 @@
 #include <vector>
 
 #define N 32
-extern int n_particles;
-
-typedef struct particle{
-  float x,y,z;
-  struct particle *next;
-} particle_t;
-extern particle_t *particles;
 
 #endif /* animate_h */
