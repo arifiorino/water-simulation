@@ -19,7 +19,7 @@ particle_t ***particles_hash;
 float **u, **v, **u2, **v2;
 char **types;
 float dt = 0.2;
-float gy = -0.4f;
+float gy = -0.6f;
 
 void config1(void){
   n_particles = 0;

@@ -10,12 +10,15 @@ import Metal
 import MetalKit
 
 class ViewController: NSViewController, MTKViewDelegate {
-    
+  
+  var stopFrame: Int = 30*30
+  var frameI: Int = 0
   var commandQueue: MTLCommandQueue!
   var pipelineState: MTLRenderPipelineState!
   var vertexBuffer: MTLBuffer!
   var device: MTLDevice!
-    
+  var metalVideoRecorder: MetalVideoRecorder!
+  
   override func viewDidLoad() {
     super.viewDidLoad()
 
@@ -23,6 +26,11 @@ class ViewController: NSViewController, MTKViewDelegate {
     device = MTLCreateSystemDefaultDevice()!
     mtkView.device = device
     mtkView.delegate = self
+    mtkView.colorPixelFormat = .bgra8Unorm
+    mtkView.framebufferOnly = false
+    metalVideoRecorder = MetalVideoRecorder(outputURL: "/Users/arifiorino/Downloads/out.mov",
+                                            size: CGSize(width: 1600, height: 1600))
+    metalVideoRecorder.startRecording()
     commandQueue = device.makeCommandQueue()!
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
     let library = device.makeDefaultLibrary()!
@@ -51,6 +59,17 @@ class ViewController: NSViewController, MTKViewDelegate {
     renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
     renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: Int(n_triangles)*3)
     renderEncoder.endEncoding()
+    if (frameI<stopFrame){
+      let texture = (self.view as! MTKView).currentDrawable!.texture
+      commandBuffer.addCompletedHandler { commandBuffer in
+        self.metalVideoRecorder.writeFrame(forTexture: texture, frameI: self.frameI)
+      }
+      print("frame",frameI,"/",stopFrame)
+    }else if (frameI==stopFrame){
+      self.metalVideoRecorder.endRecording({});
+    }
+    frameI+=1;
+    
     commandBuffer.present(view.currentDrawable!)
     commandBuffer.commit()
   }
