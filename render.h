@@ -10,8 +10,8 @@
 
 #include <stdio.h>
 
-int n_triangles;
-float *triangles;
+extern int n_triangles;
+extern float *triangles;
 
 void render(void);
 

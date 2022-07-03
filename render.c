@@ -9,6 +9,9 @@
 #include "animate.h"
 #include "utils.h"
 
+float *triangles;
+int n_triangles;
+
 void hash_particles(void){
   for (int i=0; i<N; i++)
     for (int j=0; j<N; j++)
@@ -75,20 +78,26 @@ void marching_squares(void){
     }
   }
   free(triangles);
-  triangles = malloc(n_triangles * 3 * 2 * 4);
+  triangles = (float*)malloc(n_triangles * 3 * 2 * 4);
   int c=0;
   for (int i=0; i<N*gridSplit; i++){
     for (int j=0; j<N*gridSplit; j++){
-      float x = i*gridSize;
-      float y = j*gridSize;
       bool TL = points[i][j+1];
       bool TR = points[i+1][j+1];
       bool BR = points[i+1][j];
       bool BL = points[i][j];
-      float x2 = x+gridSize;
-      float y2 = y+gridSize;
+      float x = i*gridSize;
+      float y = j*gridSize;
       float xh = x+gridSize/2;
       float yh = y+gridSize/2;
+      float x2 = x+gridSize;
+      float y2 = y+gridSize;
+      x=(x/N/gridSplit/gridSize*2)-1;
+      y=(y/N/gridSplit/gridSize*2)-1;
+      xh=(xh/N/gridSplit/gridSize*2)-1;
+      yh=(yh/N/gridSplit/gridSize*2)-1;
+      x2=(x2/N/gridSplit/gridSize*2)-1;
+      y2=(y2/N/gridSplit/gridSize*2)-1;
       
       if       ( TL && TR && BR && BL){
         triangles[c]=x; triangles[c+1]=y2; triangles[c+2]=x2; triangles[c+3]=y2; triangles[c+4]=x; triangles[c+5]=y;

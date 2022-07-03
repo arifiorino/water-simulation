@@ -12,7 +12,7 @@
 #define SOLID 0
 #define FLUID 1
 #define EMPTY 2
-int N = 64;
+int N =64;
 int n_particles;
 particle_t *particles;
 particle_t ***particles_hash;
@@ -187,7 +187,7 @@ void extrapolate(void){
   for (int i=0; i<N+1; i++)
     for (int j=0; j<N; j++)
       d[i][j]=INT_MAX;
-  int *W = malloc(N*N*2*sizeof(int));
+  int *W = (int*)malloc(N*N*2*sizeof(int));
   int W_len=0;
   for (int i=0; i<N-1; i++)
     for (int j=0; j<N; j++)
@@ -214,14 +214,14 @@ void extrapolate(void){
   while (t<W_len){
     int i=W[t];
     int j=W[t+1];
-    float new = 0;
+    float New = 0;
     int count = 0;
     for (int k=0; k<4; k++){
       int i2=i+diff[k*2];
       int j2=j+diff[k*2+1];
       if (i2>=0 && i2<N+1 && j2>=0 && j2<N){
         if (d[i2][j2]<d[i][j]){
-          new += u[i2][j2];
+          New += u[i2][j2];
           count++;
         } else if (d[i2][j2]==INT_MAX){
           d[i2][j2]=d[i][j]+1;
@@ -231,7 +231,7 @@ void extrapolate(void){
         }
       }
     }
-    u[i][j]=new/count;
+    u[i][j]=New/count;
     t+=2;
   }
   free2D((void **)d, N+1);
@@ -264,14 +264,14 @@ void extrapolate(void){
   while (t<W_len){
     int i=W[t];
     int j=W[t+1];
-    float new = 0;
+    float New = 0;
     int count = 0;
     for (int k=0; k<4; k++){
       int i2=i+diff[k*2];
       int j2=j+diff[k*2+1];
       if (i2>=0 && i2<N && j2>=0 && j2<N+1){
         if (d[i2][j2]<d[i][j]){
-          new += v[i2][j2];
+          New += v[i2][j2];
           count++;
         } else if (d[i2][j2]==INT_MAX){
           d[i2][j2]=d[i][j]+1;
@@ -281,7 +281,7 @@ void extrapolate(void){
         }
       }
     }
-    v[i][j]=new/count;
+    v[i][j]=New/count;
     t+=2;
   }
   free2D((void **)d, N);
@@ -298,7 +298,7 @@ void project(void){
       }
     }
   }
-  int *fluid_cells = malloc(n_fluid * 2 * sizeof(int));
+  int *fluid_cells = (int*)malloc(n_fluid * 2 * sizeof(int));
   int **fluid_cells_idx = (int **)malloc2D(N, N, sizeof(int));
   int idx=0;
   for (int i=0; i<N; i++){
